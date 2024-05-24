@@ -18,4 +18,4 @@ function countDistinctConsonants(text) {
     // Devolvemos el número de consonantes distintas encontradas
     return consonants.size;
 }
-module.exports= {countDistinctConsonants};
+module.exports= countDistinctConsonants;
