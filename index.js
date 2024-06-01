@@ -2,43 +2,61 @@
 /* eslint-disable no-undef */
 require("dotenv").config();
 const express = require("express");
-const cors=require("cors")
-const server = express();
-const PORT = process.env.PORT || 5000;
-const db=require("./api/utils/db.js")
-db.connectDB()
-const phrasesRoutes=require("./api/phrases/phrases.routes")
-const gameRoutes=require("./api/game/game.routes")
-server.use(cors())
+const cors = require("cors");
+const http = require("http");
+const app = express();
+const PORT = parseInt(process.env.PORT, 10) || 5000; // Convertir el puerto a número
+const db = require("./api/utils/db.js");
 
-server.use(express.json())
-server.use(express.urlencoded({extended:true}))
+// Conectar a la base de datos
+db.connectDB();
 
-server.use("/frases", phrasesRoutes)
-server.use("/game", gameRoutes)
-server.use((err, req, res, next) => {
+// Importar rutas
+const phrasesRoutes = require("./api/phrases/phrases.routes");
+const gameRoutes = require("./api/game/game.routes");
+const userRoutes = require("./api/users/user.routes")
+
+// Configurar middlewares
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Configurar rutas
+app.use("/phrases", phrasesRoutes);
+app.use("/game", gameRoutes);
+app.use("/user", userRoutes)
+
+app.use((err, req, res, next) => {
   return res.status(err.status || 500).json(err.message || "Unexpected error");
 });
 
-server.use("/", (req, res) => {
+app.use("/", (req, res) => {
   res.send("its alive!");
 });
-server.use("*", (req, res, next) => {
+
+app.use("*", (req, res, next) => {
   return res.status(404).json("Route not found");
 });
+
+// Crear servidor HTTP
+const server = http.createServer(app);
+
 function startServer(port) {
-    server.listen(port, function(err) {
-      if (err) {
-        console.log('Error al iniciar el servidor en el puerto ' + port);
-        if (err.code === 'EADDRINUSE') {
-          console.log('Intentando iniciar el servidor en un puerto alternativo');
-          startServer(port + 1);
-        } else {
-          console.log('Error desconocido:', err);
-        }
-      } else {
-        console.log('Servidor iniciado en el puerto ' + port);
-      }
-    });
-  }
-  startServer(PORT);
+  server.listen(port);
+
+  server.on("listening", () => {
+    console.log('Servidor iniciado en el puerto ' + port);
+  });
+
+  server.on("error", (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`El puerto ${port} está en uso. Intentando iniciar el servidor en el puerto ${port + 1}...`);
+      startServer(port + 1);
+    } else {
+      console.error('Error desconocido:', err);
+    }
+  });
+}
+
+// Iniciar el servidor
+startServer(PORT);

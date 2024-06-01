@@ -20,14 +20,14 @@ const getPhrase = async (req, res, next) => {
     // Marca la frase elegida como usada y numérala en la base de datos
     await Phrase.updateOne({ _id: randomPhrase._id }, { $set: { used: true, number: howManyUsed }});
 
-    
+    randomPhrase.number = howManyUsed;
     // Eliminar el campo _id de la frase del día
     randomPhrase = randomPhrase.toObject();
-    delete randomPhrase._id;
+    // delete randomPhrase._id;
     
     // Guardar randomPhrase en PhraseOfTheDay tras borrar la anterior
     await PhraseOfTheDay.deleteMany({});
-    const phraseOfTheDay = new PhraseOfTheDay(randomPhrase);
+    const phraseOfTheDay = new PhraseOfTheDay({ ...randomPhrase, _id: randomPhrase._id });
     await phraseOfTheDay.save();
     return res.status(200).json(randomPhrase);
   } catch (err) {

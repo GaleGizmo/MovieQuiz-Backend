@@ -4,11 +4,12 @@ const Schema = mongoose.Schema;
 const gameSchema = new Schema({
     userId: String,
     phrase: String,
+    phraseNumber: Number,
     maximumTries: Number,
     triedWords: [String],
     currentTry: Number,
-    isGameOver: Boolean,
-    isWin: Boolean,
+    isGameOver: String,
+    
     },
     {
         timestamps: true,
