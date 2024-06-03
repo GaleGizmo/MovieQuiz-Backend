@@ -46,5 +46,15 @@ const getPhraseOfTheDay = async (req, res, next) => {
   }
 };
 
+const addPhrase = async (req, res, next) => {
+  try {
+   
+    const phrase = new Phrase(req.body.phraseData);
+    await phrase.save();
+    return res.status(201).json(phrase);
+  } catch (err) {
+    return next(err);
+  }
+};
 
-module.exports = { getPhrase, getPhraseOfTheDay};
+module.exports = { getPhrase, getPhraseOfTheDay, addPhrase};

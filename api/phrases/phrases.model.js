@@ -6,6 +6,7 @@ const phraseSchema = new Schema(
     number: {
       type: Number,
       required: true,
+      default: 0,
     },
     quote: {
       type: String,
