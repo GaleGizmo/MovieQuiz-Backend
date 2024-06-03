@@ -3,12 +3,13 @@ const Phrase = require("./phrases.model.js");
 const PhraseOfTheDay = require("./phraseoftheday.model.js");
 
 // coge una frase de las que no han sido usadas, la copia a FraseDelDia y la marca como usada
-const getPhrase = async (req, res, next) => {
+const getPhrase = async () => {
   try {
     // Buscar todas las frases que no han sido usadas
     const unusedPhrases = await Phrase.find({ used: false });
     if (unusedPhrases.length === 0) {
-      return res.status(404).json({ message: "No hay citas disponibles" });
+      console.log("No hay citas disponibles");
+      return 
     }
     //cuenta las frases que han sido usadas
     let howManyUsed= await Phrase.countDocuments({ used: true });
@@ -29,9 +30,9 @@ const getPhrase = async (req, res, next) => {
     await PhraseOfTheDay.deleteMany({});
     const phraseOfTheDay = new PhraseOfTheDay({ ...randomPhrase, _id: randomPhrase._id });
     await phraseOfTheDay.save();
-    return res.status(200).json(randomPhrase);
+    console.log("Frase del día:", randomPhrase);
   } catch (err) {
-    return next(err);
+    console.error("Error al obtener la frase del día:", err);
   }
 };
 const getPhraseOfTheDay = async (req, res, next) => {

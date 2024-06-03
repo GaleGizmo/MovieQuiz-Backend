@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 require("dotenv").config();
+require("./cronjobs.js")
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
