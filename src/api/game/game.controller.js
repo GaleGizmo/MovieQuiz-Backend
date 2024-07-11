@@ -3,7 +3,7 @@ const Game = require("./game.model.js");
 const fs = require("fs");
 const path = require("path");
 const PhraseOfTheDay = require("../phrases/phraseoftheday.model.js");
-const countDistinctConsonants = require("../utils/countConsonants.js");
+const countDistinctConsonants = require("../../utils/countConsonants.js");
 const Phrase = require("../phrases/phrases.model.js");
 
 const startGame = async (req, res, next) => {

@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
-const User = require("../users/user.model");
+const User = require("../api/users/user.model");
 const { verifyJwt } = require("../utils/jwt");
 
 const authenticate = async (req, res, next) => {

@@ -7,15 +7,15 @@ const cors = require("cors");
 const http = require("http");
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 5000; // Convertir el puerto a número
-const db = require("./api/utils/db.js");
+const db = require("./src/utils/db.js");
 
 // Conectar a la base de datos
 db.connectDB();
 
 // Importar rutas
-const phrasesRoutes = require("./api/phrases/phrases.routes");
-const gameRoutes = require("./api/game/game.routes");
-const userRoutes = require("./api/users/user.routes")
+const phrasesRoutes = require("./src/api/phrases/phrases.routes");
+const gameRoutes = require("./src/api/game/game.routes");
+const userRoutes = require("./src/api/users/user.routes")
 
 // Configurar middlewares
 app.use(cors());
