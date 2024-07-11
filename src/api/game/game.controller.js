@@ -88,7 +88,7 @@ const tryWord = async (req, res, next) => {
 
     const filePath = path.join(
       __dirname,
-      "../../assets",
+      "../../../assets",
       `palabrasCon${word.charAt(0)}.json`
     );
     fs.readFile(filePath, "utf8", async (err, data) => {
