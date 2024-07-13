@@ -109,4 +109,15 @@ const tryWord = async (req, res, next) => {
     next(err);
   }
 };
-module.exports = { startGame, tryWord, updateGame, getActiveGame };
+const getUserStats = async (req, res, next) => {
+  try {
+    const { userId } = req.body;
+    const games = await Game.find({ userId:userId });
+    const wins = games.filter((game) => game.isGameOver === "win").length;
+    const losses = games.filter((game) => game.isGameOver === "lose").length;
+    res.status(200).json({ wins:wins, losses:losses });
+  } catch (err) {
+    next(err);
+  }
+};
+module.exports = { startGame, tryWord, updateGame, getActiveGame, getUserStats };
