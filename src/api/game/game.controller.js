@@ -115,7 +115,10 @@ const getUserStats = async (req, res, next) => {
     const games = await Game.find({ userId:userId });
     const wins = games.filter((game) => game.isGameOver === "win").length;
     const losses = games.filter((game) => game.isGameOver === "lose").length;
-    res.status(200).json({ wins:wins, losses:losses });
+    const playing=games.filter((game) => game.isGameOver === "").length;
+    const currentPhraseOfTheDay=await PhraseOfTheDay.findOne();
+    const phrasesUntilToday = currentPhraseOfTheDay ? currentPhraseOfTheDay.number : null;
+    res.status(200).json({ wins:wins, losses:losses, playing:playing, phrasesUntilToday:phrasesUntilToday });
   } catch (err) {
     next(err);
   }
