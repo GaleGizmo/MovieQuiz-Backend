@@ -20,6 +20,10 @@ const phraseSchema = new Schema(
       type: Number,
       required: true,
     },
+    director: {
+      type: String,
+      required: true,
+    },
     original: {
       type: String,
       required: false,

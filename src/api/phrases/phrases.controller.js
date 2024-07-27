@@ -1,5 +1,7 @@
 /* eslint-disable no-undef */
 const Phrase = require("./phrases.model.js");
+const fs = require("fs");
+const path = require("path");
 const PhraseOfTheDay = require("./phraseoftheday.model.js");
 const Game = require("../game/game.model.js");
 
@@ -116,6 +118,35 @@ const getOldPhrasesStatus = async (req, res, next) => {
     return next(err);
   }
 };
+const updatePhrasesDirectors = async (req,res)=>{
+  try {
+    const moviesDirectorsPath = path.join(__dirname, '../../../assets', 'moviesDirectors.json');
+    const moviesDirectors = JSON.parse(fs.readFileSync(moviesDirectorsPath, 'utf8'));
+
+    // Crear un array moviesWithoutDirector con elementos que no tengan el campo "director"
+    const movies =await Phrase.find();
+    const moviesWithoutDirector=movies.filter(movie=>!movie.director);
+
+    const updatedMovies = [];
+    // Para cada elemento en moviesWithoutDirector, buscar el director correspondiente en moviesDirectors
+    for (const movie of moviesWithoutDirector) {
+      const foundDirector = moviesDirectors.find(d => d.movie === movie.movie);
+      if (foundDirector) {
+        movie.director = foundDirector.director;
+        await Phrase.updateOne({ _id: movie._id }, { director: foundDirector.director });
+        updatedMovies.push(movie);
+      }
+    }
+
+    res.json({
+        success: true,
+        updatedMovies: moviesWithoutDirector
+    });
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error updating movies' });
+}
+}
 
 module.exports = {
   getPhrase,
@@ -123,4 +154,5 @@ module.exports = {
   addPhrase,
   getPhraseByNumber,
   getOldPhrasesStatus,
+updatePhrasesDirectors
 };

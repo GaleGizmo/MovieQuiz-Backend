@@ -1,0 +1,521 @@
+[
+    {
+      "director": "Charles Vidor",
+      "movie": "Gilda",
+      "_id": "665c9d8255f51980878596b5"
+    },
+    {
+      "director": "Billy Wilder",
+      "movie": "El crepúsculo de los dioses",
+      "_id": "662b5795a04de4bf9b39dd3f"
+    },
+    {
+      "director": "James Whale",
+      "movie": "El doctor Frankenstein",
+      "_id": "662b5795a04de4bf9b39dd69"
+    },
+    {
+      "director": "David Lynch",
+      "movie": "Mullholland Drive",
+      "_id": "665ada238af42e751c8538b9"
+    },
+    {
+      "director": "Alan Crosland",
+      "movie": "El cantor de Jazz",
+      "_id": "662b5795a04de4bf9b39dd7f"
+    },
+    {
+      "director": "Howard Hawks",
+      "movie": "El sueño Eterno",
+      "_id": "665cae3955f51980878596b7"
+    },
+    {
+      "director": "Stanley Kubrick",
+      "movie": "Atraco Perfecto",
+      "_id": "66983746fda2d2dad753511a"
+    },
+    {
+      "director": "Harold Ramis",
+      "movie": "Atrapado en el tiempo",
+      "_id": "6698c29efda2d2dad7535219"
+    },
+    {
+      "director": "Kevin Costner",
+      "movie": "Bailando con lobos",
+      "_id": "669d0f9a80bf63df4a0d252e"
+    },
+    {
+      "director": "Tim Burton",
+      "movie": "Batman",
+      "_id": "669d1ab380bf63df4a0d2573"
+    },
+    {
+      "director": "Luis García Berlanga",
+      "movie": "Bienvenido, Mr Marshall",
+      "_id": "669d1d6e80bf63df4a0d2575"
+    },
+    {
+      "director": "Luis García Berlanga",
+      "movie": "Bienvenido, Mr. Marshall",
+      "_id": "669d1ed180bf63df4a0d262d"
+    },
+    {
+      "director": "Terry Gilliam",
+      "movie": "Brazil",
+      "_id": "669e44aa80bf63df4a0d2bb8"
+    },
+    {
+      "director": "Stanley Donen, Gene Kelly",
+      "movie": "Cantando bajo la lluvia",
+      "_id": "669f67b380bf63df4a0d2d78"
+    },
+    {
+      "director": "Martin Scorsese",
+      "movie": "Casino",
+      "_id": "669f6c2080bf63df4a0d2d7a"
+    },
+    {
+      "director": "John Huston",
+      "movie": "Cayo Largo",
+      "_id": "669f719c80bf63df4a0d2d7c"
+    },
+    {
+      "director": "John Ford",
+      "movie": "Centauros del desierto",
+      "_id": "669f806080bf63df4a0d2def"
+    },
+    {
+      "director": "Stanley Donen",
+      "movie": "Charada",
+      "_id": "669f83c480bf63df4a0d2df1"
+    },
+    {
+      "director": "Rob Marshall",
+      "movie": "Chicago",
+      "_id": "669f863780bf63df4a0d2df3"
+    },
+    {
+      "director": "Kevin Smith",
+      "movie": "Clerks",
+      "_id": "669f896480bf63df4a0d2df5"
+    },
+    {
+      "director": "Peter Faiman",
+      "movie": "Cocodrilo Dundee",
+      "_id": "669f8c4480bf63df4a0d2df7"
+    },
+    {
+      "director": "Alfred Hitchcock",
+      "movie": "Con la muerte en los talones",
+      "_id": "669f8ec580bf63df4a0d2df9"
+    },
+    {
+      "director": "John Milius",
+      "movie": "Conan, el bárbaro",
+      "_id": "669f90be80bf63df4a0d2dfb"
+    },
+    {
+      "director": "John Sturges",
+      "movie": "Conspiración de silencio",
+      "_id": "66a0e75380bf63df4a0d3437"
+    },
+    {
+      "director": "Joel Coen, Ethan Coen",
+      "movie": "Crueldad Intolerable",
+      "_id": "66a0e9f780bf63df4a0d3439"
+    },
+    {
+      "director": "Fred Zinnemann",
+      "movie": "De aquí a la eternidad",
+      "_id": "66a133a380bf63df4a0d34e4"
+    },
+    {
+      "director": "Tim Miller",
+      "movie": "Deadpool",
+      "_id": "66a232d480bf63df4a0d3604"
+    },
+    {
+      "director": "Marco Brambilla",
+      "movie": "Demolition man",
+      "_id": "66a235fc80bf63df4a0d3606"
+    },
+    {
+      "director": "Jim Henson",
+      "movie": "Dentro del Laberinto",
+      "_id": "66a23bad80bf63df4a0d3608"
+    },
+    {
+      "director": "John McTiernan",
+      "movie": "Depredador",
+      "_id": "66a2411380bf63df4a0d360a"
+    },
+    {
+      "director": "Paul Verhoeven",
+      "movie": "Desafío Total",
+      "_id": "66a254af80bf63df4a0d360c"
+    },
+    {
+      "director": "Blake Edwards",
+      "movie": "Desayuno con diamantes",
+      "_id": "66a2578280bf63df4a0d360e"
+    },
+    {
+      "director": "Blake Edwards",
+      "movie": "Días de vino y rosas",
+      "_id": "66a285c880bf63df4a0d3664"
+    },
+    {
+      "director": "David Lean",
+      "movie": "Doctor Zhivago",
+      "_id": "66a38ca480bf63df4a0d3895"
+    },
+    {
+      "director": "Richard Kelly",
+      "movie": "Donnie Darko",
+      "_id": "66a393e480bf63df4a0d38a1"
+    },
+    
+        {
+          "director": "Alfred Hitchcock",
+          "movie": "Psicosis",
+          "_id": "662b5795a04de4bf9b39dd70"
+        },
+        {
+          "director": "Joel Coen, Ethan Coen",
+          "movie": "Arizona Baby",
+          "_id": "662b5795a04de4bf9b39ddb4"
+        },
+        {
+          "director": "Tony Scott",
+          "movie": "Top Gun",
+          "_id": "662b5795a04de4bf9b39dd96"
+        },
+        {
+          "director": "Phil Alden Robinson",
+          "movie": "Campo de sueños",
+          "_id": "662b5795a04de4bf9b39dd5f"
+        },
+        {
+          "director": "Ron Howard",
+          "movie": "Apolo 13",
+          "_id": "662b5795a04de4bf9b39dd6a"
+        },
+        {
+          "director": "Mike Nichols",
+          "movie": "El graduado",
+          "_id": "662b5795a04de4bf9b39dd77"
+        },
+        {
+          "director": "Sylvester Stallone",
+          "movie": "Rocky Balboa",
+          "_id": "662b5795a04de4bf9b39dd88"
+        },
+        {
+          "director": "George Lucas",
+          "movie": "La guerra de las galaxias",
+          "_id": "662b5795a04de4bf9b39dd40"
+        },
+        {
+          "director": "John Huston",
+          "movie": "El halcón maltés",
+          "_id": "662b5795a04de4bf9b39dd46"
+        },
+        {
+          "director": "Terence Young",
+          "movie": "Agente 007 contra el doctor No",
+          "_id": "662b5795a04de4bf9b39dd4e"
+        },
+        {
+          "director": "Santiago Segura",
+          "movie": "Torrente, El brazo tonto de la ley",
+          "_id": "662b5795a04de4bf9b39dd50"
+        },
+        {
+          "director": "Howard Hawks",
+          "movie": "Tener y no tener",
+          "_id": "662b5795a04de4bf9b39dd5a"
+        },
+        {
+          "director": "John Lasseter",
+          "movie": "Toy Story",
+          "_id": "662b5795a04de4bf9b39dd65"
+        },
+        {
+          "director": "Sam Wood",
+          "movie": "Una noche en la opera",
+          "_id": "662b5795a04de4bf9b39dd6d"
+        },
+        {
+          "director": "Penny Marshall",
+          "movie": "Ellas dan el golpe",
+          "_id": "662b5795a04de4bf9b39dd6e"
+        },
+        {
+          "director": "Oliver Stone",
+          "movie": "Wall Street",
+          "_id": "662b5795a04de4bf9b39dd71"
+        },
+        {
+          "director": "Stanley Kubrick",
+          "movie": "El resplandor",
+          "_id": "662b5795a04de4bf9b39dd7c"
+        },
+        {
+          "director": "Ridley Scott",
+          "movie": "Blade Runner",
+          "_id": "662b5795a04de4bf9b39dd7e"
+        },
+        {
+          "director": "William Wyler",
+          "movie": "Funny Girl",
+          "_id": "662b5795a04de4bf9b39dd89"
+        },
+        {
+          "director": "Lloyd Bacon",
+          "movie": "La Calle 42",
+          "_id": "662b5795a04de4bf9b39dd8f"
+        },
+        {
+          "director": "John G. Avildsen",
+          "movie": "Karate Kid",
+          "_id": "662b5795a04de4bf9b39dd94"
+        },
+        {
+          "director": "Morton DaCosta",
+          "movie": "Tía y mamá (Auntie Mame)",
+          "_id": "662b5795a04de4bf9b39dd95"
+        },
+        {
+          "director": "Tony Scott",
+          "movie": "Amor a quemarropa",
+          "_id": "662b5795a04de4bf9b39ddb6"
+        },
+        {
+          "director": "Jonathan Demme",
+          "movie": "El silencio de los corderos",
+          "_id": "662b5795a04de4bf9b39dd4d"
+        },
+        {
+          "director": "Terry Jones",
+          "movie": "La vida de Brian",
+          "_id": "662b5795a04de4bf9b39dd74"
+        },
+        {
+          "director": "Franklin J. Schaffner",
+          "movie": "El planeta de los simios",
+          "_id": "662b5795a04de4bf9b39dd7a"
+        },
+        {
+          "director": "Richard Fleischer",
+          "movie": "Cuando el destino nos alcance",
+          "_id": "662b5795a04de4bf9b39dd85"
+        },
+        {
+          "director": "Emile Ardolino",
+          "movie": "Dirty Dancing",
+          "_id": "662b5795a04de4bf9b39dd9a"
+        },
+        {
+          "director": "Ridley Scott",
+          "movie": "Gladiator",
+          "_id": "662b5795a04de4bf9b39dda1"
+        },
+        {
+          "director": "Tony Kaye",
+          "movie": "American History X",
+          "_id": "662b5795a04de4bf9b39ddb0"
+        },
+        {
+            "director": "M. Night Shyamalan",
+            "movie": "El sexto sentido",
+            "_id": "662b5795a04de4bf9b39dd64"
+          },
+          {
+            "director": "Frank Darabont",
+            "movie": "Cadena Perpetua",
+            "_id": "662b5795a04de4bf9b39dd9f"
+          },
+          {
+            "director": "Juanma Bajo Ulloa",
+            "movie": "Airbag",
+            "_id": "662b5795a04de4bf9b39ddaa"
+          },
+          {
+            "director": "Mary Harron",
+            "movie": "American Psycho",
+            "_id": "662b5795a04de4bf9b39ddb5"
+          },
+          {
+            "director": "Clint Eastwood",
+            "movie": "Impacto súbito",
+            "_id": "662b5795a04de4bf9b39dd3e"
+          },
+          {
+            "director": "Stuart Rosenberg",
+            "movie": "La leyenda del indomable",
+            "_id": "662b5795a04de4bf9b39dd43"
+          },
+          {
+            "director": "Raoul Walsh",
+            "movie": "Al rojo vivo",
+            "_id": "662b5795a04de4bf9b39dd4a"
+          },
+          {
+            "director": "Arthur Penn",
+            "movie": "Bonnie y Clyde",
+            "_id": "662b5795a04de4bf9b39dd61"
+          },
+          {
+            "director": "Irving Rapper",
+            "movie": "La extraña pasajera",
+            "_id": "662b5795a04de4bf9b39dd66"
+          },
+          {
+            "director": "Brian De Palma",
+            "movie": "El precio del poder",
+            "_id": "662b5795a04de4bf9b39dd75"
+          },
+          {
+            "director": "Martin Scorsese",
+            "movie": "Uno de los nuestros",
+            "_id": "662b5795a04de4bf9b39dd81"
+          },
+          {
+            "director": "Stanley Kubrick",
+            "movie": "2001: Una odisea del espacio",
+            "_id": "662b5795a04de4bf9b39dd86"
+          },
+          {
+            "director": "Mel Gibson",
+            "movie": "Braveheart",
+            "_id": "662b5795a04de4bf9b39dd93"
+          },
+          {
+            "director": "Joss Whedon",
+            "movie": "The Avengers",
+            "_id": "662b5795a04de4bf9b39dda3"
+          },
+          {
+            "director": "Nicholas Ray",
+            "movie": "En un lugar solitario",
+            "_id": "662b5795a04de4bf9b39ddb3"
+          },
+          {
+            "director": "John Huston",
+            "movie": "El tesoro de Sierra Madre",
+            "_id": "662b5795a04de4bf9b39dd5c"
+          },
+          {
+            "director": "Peter Jackson",
+            "movie": "El Señor de los Anillos: Las dos torres",
+            "_id": "662b5795a04de4bf9b39dd62"
+          },
+          {
+            "director": "Tobe Hooper",
+            "movie": "Poltergeist",
+            "_id": "662b5795a04de4bf9b39dd7d"
+          },
+          {
+            "director": "Rob Reiner",
+            "movie": "La princesa prometida",
+            "_id": "662b5795a04de4bf9b39dd8a"
+          },
+          {
+            "director": "Roger Allers, Rob Minkoff",
+            "movie": "El rey león",
+            "_id": "662b5795a04de4bf9b39ddb1"
+          },
+          {
+            "director": "Francis Ford Coppola",
+            "movie": "El padrino",
+            "_id": "662b5795a04de4bf9b39dd3a"
+          },
+          {
+            "director": "Sam Mendes",
+            "movie": "American Beauty",
+            "_id": "662b5795a04de4bf9b39ddaf"
+          },
+          {
+            "director": "Christopher Nolan",
+            "movie": "Memento",
+            "_id": "662b5795a04de4bf9b39ddb2"
+          },
+          {
+            "director": "Joseph L. Mankiewicz",
+            "movie": "Eva al desnudo",
+            "_id": "662b5795a04de4bf9b39dd41"
+          },
+          {
+            "director": "Steven Spielberg",
+            "movie": "E.T. el extraterrestre",
+            "_id": "662b5795a04de4bf9b39dd47"
+          },
+          {
+            "director": "Norman Jewison",
+            "movie": "En el calor de la noche",
+            "_id": "662b5795a04de4bf9b39dd48"
+          },
+          {
+            "director": "Sam Wood",
+            "movie": "El orgullo de los Yanquis",
+            "_id": "662b5795a04de4bf9b39dd5e"
+          },
+          {
+            "director": "James Cameron",
+            "movie": "Terminator 2: El juicio final",
+            "_id": "662b5795a04de4bf9b39dd84"
+          },
+          {
+            "director": "James L. Brooks",
+            "movie": "Mejor imposible",
+            "_id": "662b5795a04de4bf9b39dd8e"
+          },
+          {
+            "director": "Sidney Lumet",
+            "movie": "Network, un mundo implacable",
+            "_id": "662b5795a04de4bf9b39dd4b"
+          },
+          {
+            "director": "Robert Zemeckis",
+            "movie": "Forrest Gump",
+            "_id": "662b5795a04de4bf9b39dd60"
+          },
+          {
+            "director": "Clint Eastwood",
+            "movie": "Gran Torino",
+            "_id": "662b5795a04de4bf9b39dd6b"
+          },
+          {
+            "director": "Roman Polanski",
+            "movie": "Chinatown",
+            "_id": "662b5795a04de4bf9b39dd82"
+          },
+          {
+            "director": "Andrew Stanton, Lee Unkrich",
+            "movie": "Buscando a Nemo",
+            "_id": "662b5795a04de4bf9b39dd9d"
+          },
+          {
+            "director": "Christopher Nolan",
+            "movie": "El caballero oscuro",
+            "_id": "662b5795a04de4bf9b39dda2"
+          },
+          {
+            "director": "José Luis Cuerda",
+            "movie": "Amanece, que no es poco",
+            "_id": "662b5795a04de4bf9b39ddad"
+          },
+          {
+            "director": "Rob Reiner",
+            "movie": "Cuando Harry encontró a Sally",
+            "_id": "662b5795a04de4bf9b39dd59"
+          },
+          {
+            "director": "Stanley Kubrick",
+            "movie": "¿Teléfono rojo? Volamos hacia Moscú",
+            "_id": "662b5795a04de4bf9b39dd78"
+          }
+      ]
+      
+  
+  
