@@ -15,6 +15,10 @@ const phraseOfTheDaySchema = new Schema(
       type: String,
       required: true,
     },
+    director: {
+      type: String,
+      required: true,
+    },
     year: {
       type: Number,
       required: true,
