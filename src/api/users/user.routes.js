@@ -2,9 +2,11 @@
 const express = require('express');
 const userRoutes=express.Router();   
 
-const { registerUser  } = require('./user.controller.js');
+const { registerUser, updatePoints, getUserPoints  } = require('./user.controller.js');
 
 userRoutes.post('/register',registerUser);
+userRoutes.patch('/updatepoints', updatePoints);
+userRoutes.get('/getpoints', getUserPoints)
 
 
 module.exports=userRoutes;
