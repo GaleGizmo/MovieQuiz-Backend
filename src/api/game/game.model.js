@@ -7,6 +7,8 @@ const gameSchema = new Schema({
     phraseNumber: Number,
     maximumTries: Number,
     triedWords: [String],
+    lettersFound: [String],
+   
     currentTry: Number,
     isGameOver: String,
     

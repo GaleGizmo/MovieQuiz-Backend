@@ -5,31 +5,41 @@ const path = require("path");
 const PhraseOfTheDay = require("../phrases/phraseoftheday.model.js");
 const countDistinctConsonants = require("../../utils/countConsonants.js");
 const Phrase = require("../phrases/phrases.model.js");
+const removeAccents = require("../../utils/removeAccents.js");
+const processPhraseToShow = require("../../utils/processPhraseToShow.js");
+const checkLettersFromWord = require("../../utils/checkLettersFromWord.js");
+const checkEndGame = require("../../utils/checkEndGame.js");
 
 const startGame = async (req, res, next) => {
   try {
-    const { userUUID, oldPhraseToPlay } = req.body;
-    let phraseToPlay = "";
-    if (oldPhraseToPlay) {
-      phraseToPlay = await Phrase.findOne({ number: oldPhraseToPlay });
+    const { userUUID, phraseToPlay } = req.body;
+    let currentPhraseToPlay = "";
+    if (phraseToPlay) {
+      currentPhraseToPlay = await Phrase.findOne({ number: phraseToPlay });
     } else {
-      phraseToPlay = await PhraseOfTheDay.findOne();
+      currentPhraseToPlay = await PhraseOfTheDay.findOne();
     }
-    const distinctConsonants = countDistinctConsonants(phraseToPlay.quote);
+    const distinctConsonants = countDistinctConsonants(
+      currentPhraseToPlay.quote
+    );
     const maxTries = Math.ceil(distinctConsonants / 3) + 1;
     const existingGame = await Game.findOne({
       userId: userUUID,
-      phraseNumber: phraseToPlay.number,
+      phraseNumber: currentPhraseToPlay.number,
     });
     if (existingGame) {
       return res.status(200).json(existingGame);
     } else {
+      const plainPhrase = removeAccents(currentPhraseToPlay.quote);
+      const hiddenPhrase = processPhraseToShow(plainPhrase, []);
       let game = new Game({
         userId: userUUID,
-        phrase: "",
-        phraseNumber: phraseToPlay.number,
+        phrase: hiddenPhrase,
+        phraseNumber: currentPhraseToPlay.number,
         maximumTries: maxTries,
         triedWords: [],
+        lettersFound: [],
+
         currentTry: 0,
         isGameOver: "",
       });
@@ -46,13 +56,43 @@ const startGame = async (req, res, next) => {
 const updateGame = async (req, res, next) => {
   try {
     const { gameId } = req.params;
-    const { phrase, triedWords, currentTry, isGameOver } = req.body.gameData;
     if (!gameId) {
       return res.status(400).json({ message: "gameId es requerido" });
     }
+    const {gameData} = req.body;
+    if (!gameData) {
+      return res.status(400).json({ message: "Datos de juego son requeridos" });
+    }
+    let {
+      maximumTries,
+      triedWord,
+      currentTry,
+      isGameOver,
+      lettersFound,
+      phraseNumber,
+    } = gameData;
+    
+    let currentPhrasePlaying = await Phrase.findOne({ number: phraseNumber });
+    const plainPhrase = removeAccents(currentPhrasePlaying.quote);
+    let newLettersFound = checkLettersFromWord(
+      triedWord,
+      plainPhrase,
+      lettersFound
+    );
+    if (newLettersFound.length > 0) {
+      lettersFound.push(...newLettersFound);
+    }
+    currentTry++;
+    
+    let phrase = processPhraseToShow(plainPhrase, lettersFound);
+    isGameOver = checkEndGame(
+      phrase,
+      currentTry,
+      maximumTries
+    );
     const game = await Game.findOneAndUpdate(
       { _id: gameId },
-      { phrase, triedWords, currentTry, isGameOver },
+      { phrase, $push: { triedWords: triedWord }, currentTry, isGameOver, lettersFound },
       { new: true }
     );
     if (!game) {
@@ -112,15 +152,28 @@ const tryWord = async (req, res, next) => {
 const getUserStats = async (req, res, next) => {
   try {
     const { userId } = req.body;
-    const games = await Game.find({ userId:userId });
+    const games = await Game.find({ userId: userId });
     const wins = games.filter((game) => game.isGameOver === "win").length;
     const losses = games.filter((game) => game.isGameOver === "lose").length;
-    const playing=games.filter((game) => game.isGameOver === "").length;
-    const currentPhraseOfTheDay=await PhraseOfTheDay.findOne();
-    const phrasesUntilToday = currentPhraseOfTheDay ? currentPhraseOfTheDay.number : null;
-    res.status(200).json({ wins:wins, losses:losses, playing:playing, phrasesUntilToday:phrasesUntilToday });
+    const playing = games.filter((game) => game.isGameOver === "").length;
+    const currentPhraseOfTheDay = await PhraseOfTheDay.findOne();
+    const phrasesUntilToday = currentPhraseOfTheDay
+      ? currentPhraseOfTheDay.number
+      : null;
+    res.status(200).json({
+      wins: wins,
+      losses: losses,
+      playing: playing,
+      phrasesUntilToday: phrasesUntilToday,
+    });
   } catch (err) {
     next(err);
   }
 };
-module.exports = { startGame, tryWord, updateGame, getActiveGame, getUserStats };
+module.exports = {
+  startGame,
+  tryWord,
+  updateGame,
+  getActiveGame,
+  getUserStats,
+};

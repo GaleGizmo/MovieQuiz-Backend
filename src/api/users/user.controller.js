@@ -44,12 +44,9 @@ const updatePoints = async (req, res, next) => {
     const { userId, points } = req.body;
     // Validación de entrada
     if (!userId || typeof points !== "number") {
-      return res
-        .status(400)
-        .json({
-          message:
-            "UserId requerida o points debe ser un número.",
-        });
+      return res.status(400).json({
+        message: "UserId requerida o points debe ser un número.",
+      });
     }
 
     // Primero, obtener el usuario actual
@@ -64,11 +61,9 @@ const updatePoints = async (req, res, next) => {
 
     // Comprobar si los nuevos puntos serían negativos
     if (newPoints < 0) {
-      return res
-        .status(400)
-        .json({
-          message: "La operación resulta en puntos negativos. No permitido",
-        });
+      return res.status(400).json({
+        message: "La operación resulta en puntos negativos. No permitido",
+      });
     }
 
     // Actualizar puntos
@@ -87,5 +82,21 @@ const updatePoints = async (req, res, next) => {
     return next(error);
   }
 };
-
-module.exports = { registerUser, updatePoints, getUserPoints };
+const notifyMe = async (req, res, next) => {
+  try {
+    const { userId, email } = req.body;
+    let user = await User.findOne({ userId: userId });
+    if (user) {
+      return res.status(404).json({ message: "Ya hay un email asignado" });
+    } else {
+     user = new User({
+      userId: userId,
+      email: email,
+    });
+    await user.save();
+    return res.status(200).json({ message: "Usuario creado" });}
+  } catch (error) {
+    return next(error);
+  }
+};
+module.exports = { registerUser, updatePoints, getUserPoints, notifyMe };

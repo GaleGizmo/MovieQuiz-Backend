@@ -5,7 +5,7 @@ const userSchema = mongoose.Schema(
   {
     userId: { type: String, required: true, unique: true },
     points: { type: Number, default: 0, min: [0, "Points cannot be negative"] },
-
+    email: { type: String, required: false, unique: true },
     phrasesPlayed: [{ type: mongoose.Schema.Types.ObjectId, ref: "phrases" }],
     phrasesCorrect: [{ type: mongoose.Schema.Types.ObjectId, ref: "phrases" }],
   },
