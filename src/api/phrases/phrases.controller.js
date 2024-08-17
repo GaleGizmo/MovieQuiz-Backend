@@ -26,7 +26,7 @@ const getPhrase = async () => {
       { $set: { used: true, number: howManyUsed } }
     );
     //los juegos del día anterior que no estén terminados se consideran perdidos
-    await Game.updateMany({phraseNumber:{ $lt: howManyUsed }, isGameOver:""},{$set:{isGameOver:"lose"}})
+    await Game.updateMany({phraseNumber:{ $lt: howManyUsed }, gameResult:""},{$set:{gameResult:"lose"}})
    
     randomPhrase.number = howManyUsed;
     // Eliminar el campo _id de la frase del día
@@ -104,10 +104,10 @@ const getOldPhrasesStatus = async (req, res, next) => {
       if (!game) {
         result[number] = "np";
       } else {
-        if (game.isGameOver === "") {
+        if (game.gameResult === "") {
           result[number] = "uf";
         } else {
-          result[number] = game.isGameOver;
+          result[number] = game.gameResult;
         }
       }
     }
@@ -118,6 +118,7 @@ const getOldPhrasesStatus = async (req, res, next) => {
   }
 };
 
+// getPhrase()
 
 module.exports = {
   getPhrase,
