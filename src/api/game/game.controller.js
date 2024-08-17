@@ -105,12 +105,12 @@ const updateGame = async (req, res, next) => {
       );
       //comprueba si hay que sumar puntos
       let pointsToAdd = 0;
-      if (gameResult === "win" && !game.gameResultNotification) {
+      if (gameResult === "win" && !currentGame.gameResultNotification) {
         pointsToAdd = pointsToAdd + 10;
       }
       const pointsFromLetters = newLettersFound.length * 0.5;
       pointsToAdd = pointsToAdd + pointsFromLetters;
-      if (pointsToAdd > 0) await updatePoints(userId, pointsToAdd);
+      if (pointsToAdd > 0) await updatePoints(currentGame.userId, pointsToAdd);
 
       const game = await Game.findByIdAndUpdate(
         gameId,
