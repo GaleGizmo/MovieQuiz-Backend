@@ -3,7 +3,7 @@ const Game = require("./game.model.js");
 const fs = require("fs");
 const path = require("path");
 const PhraseOfTheDay = require("../phrases/phraseoftheday.model.js");
-const countDistinctConsonants = require("../../utils/countConsonants.js");
+const setMaximumTries = require("../../utils/setMaximumTries.js");
 const Phrase = require("../phrases/phrases.model.js");
 const removeAccents = require("../../utils/removeAccents.js");
 const processPhraseToShow = require("../../utils/processPhraseToShow.js");
@@ -20,16 +20,19 @@ const startGame = async (req, res, next) => {
     } else {
       currentPhraseToPlay = await PhraseOfTheDay.findOne();
     }
-    const distinctConsonants = countDistinctConsonants(
+    const maxTries = setMaximumTries(
       currentPhraseToPlay.quote
     );
-    const maxTries = Math.ceil(distinctConsonants / 3) + 1;
+   
     const existingGame = await Game.findOne({
       userId: userUUID,
       phraseNumber: currentPhraseToPlay.number,
     });
     if (existingGame) {
-      return res.status(200).json(existingGame);
+      const existingGameForResponse = {
+        ...existingGame.toObject(),
+      };
+      return res.status(200).json(existingGameForResponse);
     } else {
       const plainPhrase = removeAccents(currentPhraseToPlay.quote);
       const hiddenPhrase = processPhraseToShow(plainPhrase, []);
@@ -40,6 +43,7 @@ const startGame = async (req, res, next) => {
         maximumTries: maxTries,
         triedWords: [],
         lettersFound: [],
+        lettersFailed: [],
         gameResultNotification: false,
         currentTry: 0,
         gameResult: "",
@@ -95,6 +99,12 @@ const updateGame = async (req, res, next) => {
       if (newLettersFound.length > 0) {
         updatedLettersFound = [...updatedLettersFound, ...newLettersFound];
       }
+      const failedLetters = Array.from(triedWord).filter(
+        (letter) =>
+          !updatedLettersFound.includes(letter) &&
+          !currentGame.lettersFailed.includes(letter)
+      );
+
       const currentTry = currentGame.currentTry + 1;
 
       let phrase = processPhraseToShow(plainPhrase, updatedLettersFound);
@@ -116,7 +126,11 @@ const updateGame = async (req, res, next) => {
         gameId,
         {
           phrase,
-          $push: { triedWords: triedWord },
+          $push: {
+            triedWords: triedWord,
+            lettersFailed: { $each: failedLetters },
+          },
+
           currentTry,
           gameResult,
           lettersFound: updatedLettersFound,
@@ -124,8 +138,12 @@ const updateGame = async (req, res, next) => {
         },
         { new: true }
       );
-
-      res.status(200).json(game);
+      // Hacer una copia del objeto `game` y agregar `failedLetters`
+      const gameDataResponse = {
+        ...game.toObject(), // Convierte el documento Mongoose a un objeto plano
+    
+      };
+      res.status(200).json(gameDataResponse);
     }
   } catch (err) {
     next(err);

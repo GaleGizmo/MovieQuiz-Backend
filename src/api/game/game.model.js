@@ -9,6 +9,7 @@ const gameSchema = new Schema(
     maximumTries: Number,
     triedWords: [String],
     lettersFound: [String],
+    lettersFailed: [String],
     earnedPoints: Number,
     clues:{
       actor:{type:Boolean,default:true},
