@@ -1,7 +1,7 @@
 
 
 /* eslint-disable no-undef */
-function setMaximunTries(text) {
+function setMaximumTries(text) {
   let maximumTries = 0;
 
   let lessFrequentConsonants = "qhfzjñxkw";
@@ -20,13 +20,14 @@ function setMaximunTries(text) {
   while ((match = regex.exec(text)) !== null) {
     consonants.add(match[0]);
   }
-  maximumTries += consonants.size;
+  maximumTries += consonants.size/3;
   let countUnfrequentConsonants = 0;
   for (let letter of lessFrequentConsonants) {
     if (consonants.has(letter)) {
       countUnfrequentConsonants++;
     }
   }
+  
   //Si no hay letras infrecuentes devuelve el número de intentos tal cual,
   // y si las hay añade un intento por cada tres letras infrecuentes
   if (countUnfrequentConsonants === 0) {
@@ -34,16 +35,12 @@ function setMaximunTries(text) {
   } else {
     maximumTries += Math.floor(countUnfrequentConsonants / 3);
   }
+ 
   //Añade un intento de cortesía
   maximumTries++;
   //Limita el máximo y mínimo de intentos
-  if (maximumTries > 7) {
-    maximumTries = 7;
-  }
-  if (maximumTries < 3) {
-    maximumTries = 3;
-  }
+  maximumTries = Math.min(Math.max(maximumTries, 3), 7);
   // Devolvemos el número de intentos
   return maximumTries;
 }
-module.exports = setMaximunTries;
+module.exports = setMaximumTries;
