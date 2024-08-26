@@ -17,6 +17,8 @@ const gameSchema = new Schema(
       letter:{status:{type:Boolean,default:true}, price:{type:Number, default:25}},
       lettersRight:{status:{type:Boolean,default:true}, price:{type:Number, default:25}}
     },
+    movieDirector: String,
+    movieActor: String,
     gameResultNotification: { type: Boolean, default: false },
     currentTry: Number,
     gameResult: String,

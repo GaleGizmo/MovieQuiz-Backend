@@ -1,7 +1,5 @@
 /* eslint-disable no-undef */
 const Game = require("./game.model.js");
-const fs = require("fs");
-const path = require("path");
 const PhraseOfTheDay = require("../phrases/phraseoftheday.model.js");
 const setMaximumTries = require("../../utils/setMaximumTries.js");
 const Phrase = require("../phrases/phrases.model.js");
@@ -12,6 +10,7 @@ const checkEndGame = require("../../utils/checkEndGame.js");
 const { updatePoints } = require("../users/user.controller.js");
 const User = require("../users/user.model.js");
 const isLetter = require("../../utils/isLetter.js");
+const isValidWord = require("../../utils/isValidWord");
 
 const startGame = async (req, res, next) => {
   try {
@@ -41,6 +40,8 @@ const startGame = async (req, res, next) => {
         phrase: hiddenPhrase,
         phraseNumber: currentPhraseToPlay.number,
         maximumTries: maxTries,
+        movieDirector: "",
+        movieActor: "",
         triedWords: [],
         lettersFound: [],
         lettersFailed: [],
@@ -171,25 +172,8 @@ const tryWord = async (req, res, next) => {
       return res.status(404).json({ message: "Game not found" });
     }
 
-    const filePath = path.join(
-      __dirname,
-      "../../../assets",
-      `palabrasCon${word.charAt(0)}.json`
-    );
-    fs.readFile(filePath, "utf8", async (err, data) => {
-      if (err) {
-        return next(err);
-      }
-
-      const jsonData = JSON.parse(data);
-      const wordFound = jsonData.palabras.includes(word);
-
-      if (wordFound) {
-        return res.status(200).json({ wordFound });
-      } else {
-        return res.status(200).json({ wordFound: false });
-      }
-    });
+    const wordFound = await isValidWord(word);
+    return res.status(200).json({ wordFound });
   } catch (err) {
     next(err);
   }
@@ -279,6 +263,7 @@ const useClue = async (req, res, next) => {
           gameId,
           {
             "clues.actor.status": false,
+            movieActor: clueResult.actor,
           },
           { new: true }
         );
@@ -290,6 +275,7 @@ const useClue = async (req, res, next) => {
           gameId,
           {
             "clues.director.status": false,
+            movieDirector: clueResult.director,
           },
           { new: true }
         );
@@ -358,6 +344,7 @@ const performLetterClue = async (NumberOfPhrase, gameLettersFound) => {
 
   const hiddenPhrase = processPhraseToShow(plainPhrase, gameLettersFound);
   return {
+    message: "Letra desvelada: ",
     updatedPhrase: hiddenPhrase,
     revealedLetter: chosenLetter,
     updatedLettersFound: gameLettersFound,
@@ -369,21 +356,23 @@ const performLettersRightClue = async (
   wordToTry,
   gameLettersFound
 ) => {
+  if (!isValidWord(wordToTry)) return { message: "Palabra no válida" };
   const phraseOnGame = await Phrase.findOne({ number: NumberOfPhrase });
   const plainPhrase = removeAccents(phraseOnGame.quote);
+
   const lettersInPhrase = checkLettersFromWord(
     wordToTry,
     plainPhrase,
     gameLettersFound
   );
 
-  return {commonLetters:lettersInPhrase.length}
+  return { commonLetters: lettersInPhrase.length, message: "Letras comunes: " };
 };
 
 const performMovieStaffClue = async (NumberOfPhrase, fieldToShow) => {
   const phraseOnGame = await Phrase.findOne({ number: NumberOfPhrase });
-  if (fieldToShow === "director") return {director:phraseOnGame.director};
-  else return {actor:phraseOnGame.who_said_it.actor};
+  if (fieldToShow === "director") return { director: phraseOnGame.director, message: "Director: " };
+  else return { actor: phraseOnGame.who_said_it.actor, message: "Actor: " };
 };
 module.exports = {
   startGame,
