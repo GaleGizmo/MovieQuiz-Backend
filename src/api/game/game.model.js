@@ -12,10 +12,10 @@ const gameSchema = new Schema(
     lettersFailed: [String],
     earnedPoints: Number,
     clues:{
-      actor:{type:Boolean,default:true},
-      director:{type:Boolean,default:true},
-      letter:{type:Boolean,default:true},
-      lettersRight:{type:Boolean,default:true}
+      actor:{status:{type:Boolean,default:true}, price:{type:Number, default:15}},
+      director:{status:{type:Boolean,default:true}, price:{type:Number, default:15}},
+      letter:{status:{type:Boolean,default:true}, price:{type:Number, default:25}},
+      lettersRight:{status:{type:Boolean,default:true}, price:{type:Number, default:25}}
     },
     gameResultNotification: { type: Boolean, default: false },
     currentTry: Number,

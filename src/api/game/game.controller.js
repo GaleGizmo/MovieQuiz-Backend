@@ -10,6 +10,8 @@ const processPhraseToShow = require("../../utils/processPhraseToShow.js");
 const checkLettersFromWord = require("../../utils/checkLettersFromWord.js");
 const checkEndGame = require("../../utils/checkEndGame.js");
 const { updatePoints } = require("../users/user.controller.js");
+const User = require("../users/user.model.js");
+const isLetter = require("../../utils/isLetter.js");
 
 const startGame = async (req, res, next) => {
   try {
@@ -20,10 +22,8 @@ const startGame = async (req, res, next) => {
     } else {
       currentPhraseToPlay = await PhraseOfTheDay.findOne();
     }
-    const maxTries = setMaximumTries(
-      currentPhraseToPlay.quote
-    );
-   
+    const maxTries = setMaximumTries(currentPhraseToPlay.quote);
+
     const existingGame = await Game.findOne({
       userId: userUUID,
       phraseNumber: currentPhraseToPlay.number,
@@ -141,7 +141,6 @@ const updateGame = async (req, res, next) => {
       // Hacer una copia del objeto `game` y agregar `failedLetters`
       const gameDataResponse = {
         ...game.toObject(), // Convierte el documento Mongoose a un objeto plano
-    
       };
       res.status(200).json(gameDataResponse);
     }
@@ -216,10 +215,181 @@ const getUserStats = async (req, res, next) => {
     next(err);
   }
 };
+
+const useClue = async (req, res, next) => {
+  try {
+    const { gameId } = req.params;
+    const { clue, wordToTry } = req.body;
+    //Comprueba que la pista exista y sea válida
+    if (
+      !clue ||
+      !["letter", "lettersRight", "actor", "director"].includes(clue)
+    ) {
+      return res.status(400).json({ message: "Pista inexistente o inválida" });
+    }
+    const game = await Game.findOne({ _id: gameId });
+    if (!game) {
+      return res.status(404).json({ message: "Partida no encontrada" });
+    }
+    const user = await User.findOne({ userId: game.userId });
+    const userPoints = user.points;
+    const clueUsability = checkClueUsability(userPoints, clue, game.clues);
+    if (clueUsability === "used") {
+      return res.status(400).json({ message: "Pista ya utilizada" });
+    }
+    if (clueUsability === "not enough points") {
+      return res.status(400).json({ message: "Puntos insuficientes" });
+    }
+    let clueResult = null;
+    switch (clue) {
+      case "letter":
+        clueResult = await performLetterClue(
+          game.phraseNumber,
+          game.lettersFound
+        );
+        await Game.findByIdAndUpdate(
+          gameId,
+          {
+            lettersFound: clueResult.updatedLettersFound,
+            phrase: clueResult.updatedPhrase,
+            "clues.letter.status": false,
+          },
+          { new: true }
+        );
+        break;
+
+      case "lettersRight":
+        clueResult = await performLettersRightClue(
+          game.phraseNumber,
+          wordToTry,
+          game.lettersFound
+        );
+        await Game.findByIdAndUpdate(
+          gameId,
+          {
+            "clues.lettersRight.status": false,
+          },
+          { new: true }
+        );
+        break;
+
+      case "actor":
+        clueResult = await performMovieStaffClue(game.phraseNumber, "actor");
+        await Game.findByIdAndUpdate(
+          gameId,
+          {
+            "clues.actor.status": false,
+          },
+          { new: true }
+        );
+        break;
+
+      case "director":
+        clueResult = await performMovieStaffClue(game.phraseNumber, "director");
+        await Game.findByIdAndUpdate(
+          gameId,
+          {
+            "clues.director.status": false,
+          },
+          { new: true }
+        );
+        break;
+    }
+    // Actualiza los puntos del usuario solo si se ejecutó una pista válida
+    if (clueResult) {
+      await User.findByIdAndUpdate(
+        user._id,
+        {
+          points: userPoints - game.clues[clue].price,
+        },
+        { new: true }
+      );
+      return res.status(200).json(clueResult);
+    }
+
+    return res.status(400).json({ message: "Error al procesar la pista" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const checkClueUsability = (pointsOfUser, clueToCheck, cluesStatus) => {
+  if (cluesStatus[clueToCheck].status === false) {
+    return "used";
+  }
+  if (cluesStatus[clueToCheck].price > pointsOfUser) {
+    return "not enough points";
+  }
+  return "ok";
+};
+
+const performLetterClue = async (NumberOfPhrase, gameLettersFound) => {
+  const phraseOnGame = await Phrase.findOne({ number: NumberOfPhrase });
+  const plainPhrase = removeAccents(phraseOnGame.quote);
+
+  // Definimos un conjunto para almacenar las letras de la frase
+  const undiscoveredPhraseLetters = new Set();
+
+  // Iteramos sobre cada letra de la frase
+  for (const letter of plainPhrase) {
+    // Si la letra no está en gameLettersFound y es una letra válida (alfabeto)
+    if (!gameLettersFound.includes(letter) && isLetter(letter)) {
+      undiscoveredPhraseLetters.add(letter);
+    }
+  }
+
+  // Convertimos el conjunto a un array
+  const undiscoveredPhraseLettersArray = Array.from(undiscoveredPhraseLetters);
+  // Si no hay letras por descubrir, retornamos null
+  if (undiscoveredPhraseLettersArray.length === 0) {
+    return null;
+  }
+
+  let chosenLetter;
+
+  // Elegimos una letra al azar del array
+  const randomIndex = Math.floor(
+    Math.random() * undiscoveredPhraseLettersArray.length
+  );
+  chosenLetter = undiscoveredPhraseLettersArray[randomIndex];
+
+  // Agregamos la letra seleccionada al array gameLettersFound
+  gameLettersFound.push(chosenLetter);
+
+  const hiddenPhrase = processPhraseToShow(plainPhrase, gameLettersFound);
+  return {
+    updatedPhrase: hiddenPhrase,
+    revealedLetter: chosenLetter,
+    updatedLettersFound: gameLettersFound,
+  };
+};
+
+const performLettersRightClue = async (
+  NumberOfPhrase,
+  wordToTry,
+  gameLettersFound
+) => {
+  const phraseOnGame = await Phrase.findOne({ number: NumberOfPhrase });
+  const plainPhrase = removeAccents(phraseOnGame.quote);
+  const lettersInPhrase = checkLettersFromWord(
+    wordToTry,
+    plainPhrase,
+    gameLettersFound
+  );
+
+  return {commonLetters:lettersInPhrase.length}
+};
+
+const performMovieStaffClue = async (NumberOfPhrase, fieldToShow) => {
+  const phraseOnGame = await Phrase.findOne({ number: NumberOfPhrase });
+  if (fieldToShow === "director") return {director:phraseOnGame.director};
+  else return {actor:phraseOnGame.who_said_it.actor};
+};
 module.exports = {
   startGame,
   tryWord,
   updateGame,
   getActiveGame,
   getUserStats,
+  useClue,
 };
