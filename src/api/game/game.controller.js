@@ -231,15 +231,17 @@ const useClue = async (req, res, next) => {
           game.phraseNumber,
           game.lettersFound
         );
-        await Game.findByIdAndUpdate(
-          gameId,
-          {
-            lettersFound: clueResult.updatedLettersFound,
-            phrase: clueResult.updatedPhrase,
-            "clues.letter.status": false,
-          },
-          { new: true }
-        );
+        if (clueResult.used) {
+          await Game.findByIdAndUpdate(
+            gameId,
+            {
+              lettersFound: clueResult.updatedLettersFound,
+              phrase: clueResult.updatedPhrase,
+              "clues.letter.status": false,
+            },
+            { new: true }
+          );
+        }
         break;
 
       case "lettersRight":
@@ -248,17 +250,20 @@ const useClue = async (req, res, next) => {
           wordToTry,
           game.lettersFound
         );
-        await Game.findByIdAndUpdate(
-          gameId,
-          {
-            "clues.lettersRight.status": false,
-          },
-          { new: true }
-        );
+        if (clueResult.used) {
+          await Game.findByIdAndUpdate(
+            gameId,
+            {
+              "clues.lettersRight.status": false,
+            },
+            { new: true }
+          );
+        }
         break;
 
       case "actor":
         clueResult = await performMovieStaffClue(game.phraseNumber, "actor");
+        if (clueResult.used){
         await Game.findByIdAndUpdate(
           gameId,
           {
@@ -266,11 +271,12 @@ const useClue = async (req, res, next) => {
             movieActor: clueResult.actor,
           },
           { new: true }
-        );
+        );}
         break;
 
       case "director":
         clueResult = await performMovieStaffClue(game.phraseNumber, "director");
+        if (clueResult.used){
         await Game.findByIdAndUpdate(
           gameId,
           {
@@ -278,11 +284,11 @@ const useClue = async (req, res, next) => {
             movieDirector: clueResult.director,
           },
           { new: true }
-        );
+        );}
         break;
     }
     // Actualiza los puntos del usuario solo si se ejecutó una pista válida
-    if (clueResult) {
+    if (clueResult.used) {
       await User.findByIdAndUpdate(
         user._id,
         {
@@ -348,6 +354,7 @@ const performLetterClue = async (NumberOfPhrase, gameLettersFound) => {
     updatedPhrase: hiddenPhrase,
     revealedLetter: chosenLetter,
     updatedLettersFound: gameLettersFound,
+    used: true,
   };
 };
 
@@ -366,13 +373,28 @@ const performLettersRightClue = async (
     gameLettersFound
   );
 
-  return { commonLetters: lettersInPhrase.length, message: "Letras comunes: " };
+  return {
+    lettersRight: lettersInPhrase.length,
+    message: "Letras comunes: ",
+    used: true,
+  };
 };
 
 const performMovieStaffClue = async (NumberOfPhrase, fieldToShow) => {
   const phraseOnGame = await Phrase.findOne({ number: NumberOfPhrase });
-  if (fieldToShow === "director") return { director: phraseOnGame.director, message: "Director: " };
-  else return { actor: phraseOnGame.who_said_it.actor, message: "Actor: " };
+  if (fieldToShow === "director" && phraseOnGame.director)
+    return {
+      director: phraseOnGame.director,
+      message: "Director: ",
+      used: true,
+    };
+  else if (fieldToShow === "actor" && phraseOnGame.who_said_it.actor)
+    return {
+      actor: phraseOnGame.who_said_it.actor,
+      message: "Actor: ",
+      used: true,
+    };
+    else return null
 };
 module.exports = {
   startGame,
