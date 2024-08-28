@@ -84,7 +84,11 @@ const updateGame = async (req, res, next) => {
         },
         { new: true }
       );
-      return res.status(200).json(game);
+      const gameDataResponse = {
+        ...game.toObject(), // Convierte el documento Mongoose a un objeto plano
+      };
+      gameDataResponse.newLetters = [];
+      res.status(200).json(gameDataResponse);
     } else {
       let currentPhrasePlaying = await Phrase.findOne({
         number: currentGame.phraseNumber,
@@ -117,7 +121,7 @@ const updateGame = async (req, res, next) => {
       //comprueba si hay que sumar puntos
       let pointsToAdd = 0;
       if (gameResult === "win" && !currentGame.gameResultNotification) {
-        pointsToAdd = pointsToAdd + 10;
+        pointsToAdd = pointsToAdd + 15;
       }
       const pointsFromLetters = newLettersFound.length * 0.5;
       pointsToAdd = pointsToAdd + pointsFromLetters;
@@ -143,6 +147,7 @@ const updateGame = async (req, res, next) => {
       const gameDataResponse = {
         ...game.toObject(), // Convierte el documento Mongoose a un objeto plano
       };
+      gameDataResponse.newLetters = newLettersFound;
       res.status(200).json(gameDataResponse);
     }
   } catch (err) {
@@ -219,10 +224,10 @@ const useClue = async (req, res, next) => {
     const userPoints = user.points;
     const clueUsability = checkClueUsability(userPoints, clue, game.clues);
     if (clueUsability === "used") {
-      return res.status(400).json({ message: "Pista ya utilizada" });
+      return res.status(200).json({ message: "Pista ya utilizada" });
     }
     if (clueUsability === "not enough points") {
-      return res.status(400).json({ message: "Puntos insuficientes" });
+      return res.status(200).json({ message: "Puntos insuficientes" });
     }
     let clueResult = null;
     switch (clue) {
@@ -298,7 +303,9 @@ const useClue = async (req, res, next) => {
       );
       return res.status(200).json(clueResult);
     }
-
+    if (clueResult.message) {
+      return res.status(200).json(clueResult);
+    }
     return res.status(400).json({ message: "Error al procesar la pista" });
   } catch (err) {
     next(err);
@@ -350,7 +357,7 @@ const performLetterClue = async (NumberOfPhrase, gameLettersFound) => {
 
   const hiddenPhrase = processPhraseToShow(plainPhrase, gameLettersFound);
   return {
-    message: "Letra desvelada: ",
+    message: "Letra desvelada: "+chosenLetter,
     updatedPhrase: hiddenPhrase,
     revealedLetter: chosenLetter,
     updatedLettersFound: gameLettersFound,
@@ -375,7 +382,7 @@ const performLettersRightClue = async (
 
   return {
     lettersRight: lettersInPhrase.length,
-    message: "Letras comunes: ",
+    message: "Letras comunes: "+lettersInPhrase.length,
     used: true,
   };
 };
@@ -385,13 +392,13 @@ const performMovieStaffClue = async (NumberOfPhrase, fieldToShow) => {
   if (fieldToShow === "director" && phraseOnGame.director)
     return {
       director: phraseOnGame.director,
-      message: "Director: ",
+      message: "Director: "+phraseOnGame.director,
       used: true,
     };
   else if (fieldToShow === "actor" && phraseOnGame.who_said_it.actor)
     return {
       actor: phraseOnGame.who_said_it.actor,
-      message: "Actor: ",
+      message: "Actor: "+phraseOnGame.who_said_it.actor,
       used: true,
     };
     else return null
