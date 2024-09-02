@@ -382,7 +382,7 @@ const performLettersRightClue = async (
 
   return {
     lettersRight: lettersInPhrase.length,
-    message: "Letras comunes: "+lettersInPhrase.length,
+    message: "Hay "+lettersInPhrase.length+" letras comunes: ",
     used: true,
   };
 };
@@ -392,13 +392,13 @@ const performMovieStaffClue = async (NumberOfPhrase, fieldToShow) => {
   if (fieldToShow === "director" && phraseOnGame.director)
     return {
       director: phraseOnGame.director,
-      message: "Director: "+phraseOnGame.director,
+      message: "Dirigida por: "+phraseOnGame.director,
       used: true,
     };
   else if (fieldToShow === "actor" && phraseOnGame.who_said_it.actor)
     return {
       actor: phraseOnGame.who_said_it.actor,
-      message: "Actor: "+phraseOnGame.who_said_it.actor,
+      message: "Intérprete: "+phraseOnGame.who_said_it.actor,
       used: true,
     };
     else return null
