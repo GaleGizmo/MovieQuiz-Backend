@@ -230,6 +230,7 @@ const useClue = async (req, res, next) => {
       return res.status(200).json({ message: "Puntos insuficientes" });
     }
     let clueResult = null;
+    let updatedGameClues = null
     switch (clue) {
       case "letter":
         clueResult = await performLetterClue(
@@ -237,15 +238,17 @@ const useClue = async (req, res, next) => {
           game.lettersFound
         );
         if (clueResult.used) {
-          await Game.findByIdAndUpdate(
+          const updatedGame = await Game.findByIdAndUpdate(
             gameId,
             {
               lettersFound: clueResult.updatedLettersFound,
               phrase: clueResult.updatedPhrase,
               "clues.letter.status": false,
+              "clues.letter.value": clueResult.revealedLetter,
             },
             { new: true }
           );
+          updatedGameClues = updatedGame.clues;
         }
         break;
 
@@ -256,40 +259,46 @@ const useClue = async (req, res, next) => {
           game.lettersFound
         );
         if (clueResult.used) {
-          await Game.findByIdAndUpdate(
+        const updatedGame =  await Game.findByIdAndUpdate(
             gameId,
             {
               "clues.lettersRight.status": false,
+              "clues.lettersRight.value.commons": clueResult.lettersRight,
+              "clues.lettersRight.value.word": wordToTry,
             },
             { new: true }
           );
+          updatedGameClues = updatedGame.clues;
         }
         break;
 
       case "actor":
         clueResult = await performMovieStaffClue(game.phraseNumber, "actor");
         if (clueResult.used){
-        await Game.findByIdAndUpdate(
+       const updatedGame = await Game.findByIdAndUpdate(
           gameId,
           {
             "clues.actor.status": false,
-            movieActor: clueResult.actor,
+            "clues.actor.value": clueResult.actor,
           },
           { new: true }
-        );}
+        );
+        updatedGameClues = updatedGame.clues;
+      }
         break;
 
       case "director":
         clueResult = await performMovieStaffClue(game.phraseNumber, "director");
         if (clueResult.used){
-        await Game.findByIdAndUpdate(
+        const updatedGame = await Game.findByIdAndUpdate(
           gameId,
           {
             "clues.director.status": false,
-            movieDirector: clueResult.director,
+            "clues.director.value": clueResult.director,
           },
           { new: true }
-        );}
+        );
+        updatedGameClues = updatedGame.clues;}
         break;
     }
     // Actualiza los puntos del usuario solo si se ejecutó una pista válida
@@ -301,10 +310,10 @@ const useClue = async (req, res, next) => {
         },
         { new: true }
       );
-      return res.status(200).json(clueResult);
+      return res.status(200).json({clueResult:clueResult, updatedGameClues:updatedGameClues});
     }
     if (clueResult.message) {
-      return res.status(200).json(clueResult);
+      return res.status(200).json({clueResult:clueResult});
     }
     return res.status(400).json({ message: "Error al procesar la pista" });
   } catch (err) {

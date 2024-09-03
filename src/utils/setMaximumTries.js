@@ -20,7 +20,7 @@ function setMaximumTries(text) {
   while ((match = regex.exec(text)) !== null) {
     consonants.add(match[0]);
   }
-  maximumTries += consonants.size/3;
+  maximumTries +=Math.ceil(consonants.size/3); 
   let countUnfrequentConsonants = 0;
   for (let letter of lessFrequentConsonants) {
     if (consonants.has(letter)) {
@@ -40,6 +40,8 @@ function setMaximumTries(text) {
   maximumTries++;
   //Limita el máximo y mínimo de intentos
   maximumTries = Math.min(Math.max(maximumTries, 3), 7);
+
+
   // Devolvemos el número de intentos
   return maximumTries;
 }

@@ -11,16 +11,34 @@ const gameSchema = new Schema(
     lettersFound: [String],
     lettersFailed: [String],
     earnedPoints: Number,
-    clues:{
-      actor:{status:{type:Boolean,default:true}, price:{type:Number, default:15}},
-      director:{status:{type:Boolean,default:true}, price:{type:Number, default:15}},
-      letter:{status:{type:Boolean,default:true}, price:{type:Number, default:25}},
-      lettersRight:{status:{type:Boolean,default:true}, price:{type:Number, default:25}}
+    clues: {
+      actor: {
+        status: { type: Boolean, default: true },
+        price: { type: Number, default: 15 },
+        value: { type: String },
+      },
+      director: {
+        status: { type: Boolean, default: true },
+        price: { type: Number, default: 15 },
+        value: { type: String },
+      },
+      letter: {
+        status: { type: Boolean, default: true },
+        price: { type: Number, default: 25 },
+        value: { type: String },
+      },
+      lettersRight: {
+        status: { type: Boolean, default: true },
+        price: { type: Number, default: 25 },
+        value: {
+          commons: { type: Number },
+          word: { type: String },
+        },
+      },
     },
-    movieDirector: String,
-    movieActor: String,
+
     gameResultNotification: { type: Boolean, default: false },
-    currentTry: Number,
+    currentTry: { type: Number, default: 0 },
     gameResult: String,
   },
   {
