@@ -121,7 +121,7 @@ const updateGame = async (req, res, next) => {
       //comprueba si hay que sumar puntos
       let pointsToAdd = 0;
       if (gameResult === "win" && !currentGame.gameResultNotification) {
-        pointsToAdd = pointsToAdd + 15;
+        pointsToAdd = pointsToAdd + 20;
       }
       const pointsFromLetters = newLettersFound.length * 0.5;
       pointsToAdd = pointsToAdd + pointsFromLetters;
@@ -139,7 +139,7 @@ const updateGame = async (req, res, next) => {
           currentTry,
           gameResult,
           lettersFound: updatedLettersFound,
-          $inc: { earnedPoints: pointsFromLetters },
+          $inc: { earnedPoints: pointsToAdd },
         },
         { new: true }
       );
