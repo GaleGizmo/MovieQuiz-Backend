@@ -122,8 +122,10 @@ const updateGame = async (req, res, next) => {
       let pointsToAdd = 0;
       if (gameResult === "win" && !currentGame.gameResultNotification) {
         pointsToAdd = pointsToAdd + 20;
+        //suma 10 puntos por cada intento sobrante
+         pointsToAdd = pointsToAdd + (currentGame.maximumTries - currentTry)*10 
       }
-      const pointsFromLetters = newLettersFound.length * 0.5;
+      const pointsFromLetters = newLettersFound.length ;
       pointsToAdd = pointsToAdd + pointsFromLetters;
       if (pointsToAdd > 0) await updatePoints(currentGame.userId, pointsToAdd);
 

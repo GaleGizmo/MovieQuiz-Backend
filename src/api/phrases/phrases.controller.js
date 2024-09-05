@@ -90,9 +90,12 @@ const getPhraseByNumber = async (req, res, next) => {
 const getOldPhrasesStatus = async (req, res, next) => {
   const { playerId } = req.params;
   try {
-    const oldPhrases = await Phrase.find({ used: true })
+    const oldPhrases = await Phrase.find({ used: true})
       .select("number")
       .sort("number");
+      if (oldPhrases.length === 0) {
+        return res.status(200).json({ message: "No se encontraron citas anteriores" });
+      }
     const phraseNumbers = oldPhrases.map((phrase) => phrase.number);
     const result = {};
     for (const number of phraseNumbers) {
