@@ -4,7 +4,7 @@
 function setMaximumTries(text) {
   let maximumTries = 0;
 
-  let lessFrequentConsonants = "qhfzjñxkw";
+  let lessFrequentConsonants = "qfzjñxkw";
 
   // Convertimos el texto a minúsculas para hacer la comparación de manera uniforme
   text = text.toLowerCase();
@@ -21,6 +21,8 @@ function setMaximumTries(text) {
     consonants.add(match[0]);
   }
   maximumTries +=Math.ceil(consonants.size/3); 
+
+
   let countUnfrequentConsonants = 0;
   for (let letter of lessFrequentConsonants) {
     if (consonants.has(letter)) {
@@ -29,17 +31,16 @@ function setMaximumTries(text) {
   }
   
   //Si no hay letras infrecuentes devuelve el número de intentos tal cual,
-  // y si las hay añade un intento por cada tres letras infrecuentes
-  if (countUnfrequentConsonants === 0) {
-    return maximumTries;
-  } else {
-    maximumTries += Math.floor(countUnfrequentConsonants / 3);
+  // y si las hay añade un intento por cada cuatro letras infrecuentes
+  if (countUnfrequentConsonants >=4) {
+    maximumTries += Math.floor(countUnfrequentConsonants / 4);
   }
  
   //Añade un intento de cortesía
   maximumTries++;
   //Limita el máximo y mínimo de intentos
-  maximumTries = Math.min(Math.max(maximumTries, 3), 7);
+  if (maximumTries <3 ) maximumTries =3;
+  if (maximumTries >6) maximumTries =6;
 
 
   // Devolvemos el número de intentos

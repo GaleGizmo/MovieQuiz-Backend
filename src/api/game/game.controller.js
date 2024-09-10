@@ -14,7 +14,7 @@ const isValidWord = require("../../utils/isValidWord");
 
 const startGame = async (req, res, next) => {
   try {
-    const { userUUID, phraseToPlay } = req.body;
+    const { userId, phraseToPlay } = req.body;
     let currentPhraseToPlay = "";
     if (phraseToPlay) {
       currentPhraseToPlay = await Phrase.findOne({ number: phraseToPlay });
@@ -24,7 +24,7 @@ const startGame = async (req, res, next) => {
     const maxTries = setMaximumTries(currentPhraseToPlay.quote);
 
     const existingGame = await Game.findOne({
-      userId: userUUID,
+      userId: userId,
       phraseNumber: currentPhraseToPlay.number,
     });
     if (existingGame) {
@@ -36,7 +36,7 @@ const startGame = async (req, res, next) => {
       const plainPhrase = removeAccents(currentPhraseToPlay.quote);
       const hiddenPhrase = processPhraseToShow(plainPhrase, []);
       let game = new Game({
-        userId: userUUID,
+        userId: userId,
         phrase: hiddenPhrase,
         phraseNumber: currentPhraseToPlay.number,
         maximumTries: maxTries,
@@ -47,7 +47,7 @@ const startGame = async (req, res, next) => {
         lettersFailed: [],
         gameResultNotification: false,
         currentTry: 0,
-        gameResult: "",
+        gameStatus: "playing",
       });
 
       await game.save();
@@ -113,19 +113,20 @@ const updateGame = async (req, res, next) => {
       const currentTry = currentGame.currentTry + 1;
 
       let phrase = processPhraseToShow(plainPhrase, updatedLettersFound);
-      const gameResult = checkEndGame(
+      const gameStatus = checkEndGame(
         phrase,
         currentTry,
         currentGame.maximumTries
       );
       //comprueba si hay que sumar puntos
       let pointsToAdd = 0;
-      if (gameResult === "win" && !currentGame.gameResultNotification) {
+      if (gameStatus === "win" && !currentGame.gameResultNotification) {
         pointsToAdd = pointsToAdd + 20;
         //suma 10 puntos por cada intento sobrante
-         pointsToAdd = pointsToAdd + (currentGame.maximumTries - currentTry)*10 
+        pointsToAdd =
+          pointsToAdd + (currentGame.maximumTries - currentTry) * 10;
       }
-      const pointsFromLetters = newLettersFound.length ;
+      const pointsFromLetters = newLettersFound.length;
       pointsToAdd = pointsToAdd + pointsFromLetters;
       if (pointsToAdd > 0) await updatePoints(currentGame.userId, pointsToAdd);
 
@@ -139,7 +140,7 @@ const updateGame = async (req, res, next) => {
           },
 
           currentTry,
-          gameResult,
+          gameStatus,
           lettersFound: updatedLettersFound,
           $inc: { earnedPoints: pointsToAdd },
         },
@@ -174,7 +175,7 @@ const tryWord = async (req, res, next) => {
   try {
     const { userId, word } = req.body;
 
-    const game = await Game.findOne({ userId, gameResult: "" });
+    const game = await Game.findOne({ userId, gameStatus: "playing" });
     if (!game) {
       return res.status(404).json({ message: "Game not found" });
     }
@@ -189,9 +190,9 @@ const getUserStats = async (req, res, next) => {
   try {
     const { userId } = req.body;
     const games = await Game.find({ userId: userId });
-    const wins = games.filter((game) => game.gameResult === "win").length;
-    const losses = games.filter((game) => game.gameResult === "lose").length;
-    const playing = games.filter((game) => game.gameResult === "").length;
+    const wins = games.filter((game) => game.gameStatus === "win").length;
+    const losses = games.filter((game) => game.gameStatus === "lose").length;
+    const playing = games.filter((game) => game.gameStatus === "playing").length;
     const currentPhraseOfTheDay = await PhraseOfTheDay.findOne();
     const phrasesUntilToday = currentPhraseOfTheDay
       ? currentPhraseOfTheDay.number
@@ -218,21 +219,31 @@ const useClue = async (req, res, next) => {
     ) {
       return res.status(400).json({ message: "Pista inexistente o inválida" });
     }
+    if (clue === "lettersRight" && !wordToTry) {
+      return res
+        .status(400)
+        .json({
+          message: "Palabra no proporcionada para la pista lettersRight",
+        });
+    }
+
     const game = await Game.findOne({ _id: gameId });
     if (!game) {
       return res.status(404).json({ message: "Partida no encontrada" });
     }
-    const user = await User.findOne({ userId: game.userId });
+    const user = await User.findById(game.userId );
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
     const userPoints = user.points;
-    const clueUsability = checkClueUsability(userPoints, clue, game.clues);
-    if (clueUsability === "used") {
-      return res.status(200).json({ message: "Pista ya utilizada" });
+    let clueResult = {};
+    let updatedGameClues = null;
+    const usabilityOfClue = checkClueUsability(userPoints, clue, game.clues);
+    if (usabilityOfClue != "ok") {
+      return res.status(200).json({ unusable: usabilityOfClue });
     }
-    if (clueUsability === "not enough points") {
-      return res.status(200).json({ message: "Puntos insuficientes" });
-    }
-    let clueResult = null;
-    let updatedGameClues = null
+
+
     switch (clue) {
       case "letter":
         clueResult = await performLetterClue(
@@ -261,7 +272,7 @@ const useClue = async (req, res, next) => {
           game.lettersFound
         );
         if (clueResult.used) {
-        const updatedGame =  await Game.findByIdAndUpdate(
+          const updatedGame = await Game.findByIdAndUpdate(
             gameId,
             {
               "clues.lettersRight.status": false,
@@ -276,31 +287,32 @@ const useClue = async (req, res, next) => {
 
       case "actor":
         clueResult = await performMovieStaffClue(game.phraseNumber, "actor");
-        if (clueResult.used){
-       const updatedGame = await Game.findByIdAndUpdate(
-          gameId,
-          {
-            "clues.actor.status": false,
-            "clues.actor.value": clueResult.actor,
-          },
-          { new: true }
-        );
-        updatedGameClues = updatedGame.clues;
-      }
+        if (clueResult.used) {
+          const updatedGame = await Game.findByIdAndUpdate(
+            gameId,
+            {
+              "clues.actor.status": false,
+              "clues.actor.value": clueResult.actor,
+            },
+            { new: true }
+          );
+          updatedGameClues = updatedGame.clues;
+        }
         break;
 
       case "director":
         clueResult = await performMovieStaffClue(game.phraseNumber, "director");
-        if (clueResult.used){
-        const updatedGame = await Game.findByIdAndUpdate(
-          gameId,
-          {
-            "clues.director.status": false,
-            "clues.director.value": clueResult.director,
-          },
-          { new: true }
-        );
-        updatedGameClues = updatedGame.clues;}
+        if (clueResult.used) {
+          const updatedGame = await Game.findByIdAndUpdate(
+            gameId,
+            {
+              "clues.director.status": false,
+              "clues.director.value": clueResult.director,
+            },
+            { new: true }
+          );
+          updatedGameClues = updatedGame.clues;
+        }
         break;
     }
     // Actualiza los puntos del usuario solo si se ejecutó una pista válida
@@ -312,10 +324,12 @@ const useClue = async (req, res, next) => {
         },
         { new: true }
       );
-      return res.status(200).json({clueResult:clueResult, updatedGameClues:updatedGameClues});
+      return res
+        .status(200)
+        .json({ clueResult: clueResult, updatedGameClues: updatedGameClues });
     }
-    if (clueResult.message) {
-      return res.status(200).json({clueResult:clueResult});
+    if (!clueResult.used && clueResult.message) {
+      return res.status(200).json({ unusable: clueResult.message });
     }
     return res.status(400).json({ message: "Error al procesar la pista" });
   } catch (err) {
@@ -325,10 +339,10 @@ const useClue = async (req, res, next) => {
 
 const checkClueUsability = (pointsOfUser, clueToCheck, cluesStatus) => {
   if (cluesStatus[clueToCheck].status === false) {
-    return "used";
+    return "Pista ya usada";
   }
   if (cluesStatus[clueToCheck].price > pointsOfUser) {
-    return "not enough points";
+    return "Puntos insuficientes";
   }
   return "ok";
 };
@@ -368,7 +382,7 @@ const performLetterClue = async (NumberOfPhrase, gameLettersFound) => {
 
   const hiddenPhrase = processPhraseToShow(plainPhrase, gameLettersFound);
   return {
-    message: "Letra desvelada: "+chosenLetter,
+    message: "Letra desvelada: " + chosenLetter,
     updatedPhrase: hiddenPhrase,
     revealedLetter: chosenLetter,
     updatedLettersFound: gameLettersFound,
@@ -393,7 +407,7 @@ const performLettersRightClue = async (
 
   return {
     lettersRight: lettersInPhrase.length,
-    message: "Hay "+lettersInPhrase.length+" letras comunes: ",
+    message: "Hay " + lettersInPhrase.length + " letras comunes: ",
     used: true,
   };
 };
@@ -403,16 +417,16 @@ const performMovieStaffClue = async (NumberOfPhrase, fieldToShow) => {
   if (fieldToShow === "director" && phraseOnGame.director)
     return {
       director: phraseOnGame.director,
-      message: "Dirigida por: "+phraseOnGame.director,
+      message: "Dirigida por: " + phraseOnGame.director,
       used: true,
     };
   else if (fieldToShow === "actor" && phraseOnGame.who_said_it.actor)
     return {
       actor: phraseOnGame.who_said_it.actor,
-      message: "Intérprete: "+phraseOnGame.who_said_it.actor,
+      message: "Intérprete: " + phraseOnGame.who_said_it.actor,
       used: true,
     };
-    else return null
+  else return null;
 };
 module.exports = {
   startGame,

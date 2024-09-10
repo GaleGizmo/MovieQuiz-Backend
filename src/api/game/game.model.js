@@ -24,7 +24,7 @@ const gameSchema = new Schema(
       },
       letter: {
         status: { type: Boolean, default: true },
-        price: { type: Number, default: 25 },
+        price: { type: Number, default: 30 },
         value: { type: String },
       },
       lettersRight: {
@@ -39,7 +39,7 @@ const gameSchema = new Schema(
 
     gameResultNotification: { type: Boolean, default: false },
     currentTry: { type: Number, default: 0 },
-    gameResult: String,
+    gameStatus: {type: String, default:"playing"}
   },
   {
     timestamps: true,

@@ -1,28 +1,58 @@
 /* eslint-disable no-undef */
 
-
 const User = require("./user.model");
 
+const getUserData = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no existe" });
+    }
+    const userForFront = {
+      _id: user._id,
+      dontShowInstructions: user.dontShowInstructions,
+      
+    };
+    return res.status(200).json(userForFront);
+  } catch (error) {
+    return next(error);
+  }
+};
 const registerUser = async (req, res, next) => {
   try {
-    const { userIDD } = req.body;
-
-    // Verifica si el usuario ya existe
-    const existingUser = await User.findOne({
-      userId: userIDD,
-    });
-    if (existingUser) {
-      return res.status(409).json({ message: "El usuario ya existe" });
-    }
-
-    // Crea el usuario
-
-    const user = new User({
-      userId: userIDD,
-    });
+    const user = new User();
     await user.save();
+    const userForFront = {
+      _id: user._id,
+      instructions: user.dontShowInstructions,
+    };
 
-    return res.status(201).json({ user });
+   
+
+    return res.status(201).json(userForFront);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const updateUser = async (req, res, next) => {
+  try {
+    
+    const { userId } = req.params;
+    const {userData} = req.body;
+    
+    const user = await User.findByIdAndUpdate(
+      userId,
+      userData,
+      { new: true, runValidators: true }
+    );
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no existe" });
+    }
+    
+
+    return res.status(200).json(user);
   } catch (error) {
     return next(error);
   }
@@ -31,7 +61,7 @@ const registerUser = async (req, res, next) => {
 const getUserPoints = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const user = await User.findOne({ userId: userId });
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "Usuario no existe" });
     }
@@ -47,7 +77,7 @@ const updatePoints = async (userId, pointsToAdd) => {
     }
 
     // Obtener el usuario actual
-    const user = await User.findOne({ userId: userId });
+    const user = await User.findById(userId);
 
     if (!user) {
       throw new Error("Usuario no existe");
@@ -55,13 +85,13 @@ const updatePoints = async (userId, pointsToAdd) => {
 
     // Actualizar puntos en usuario
     const updatedUser = await User.findOneAndUpdate(
-      { userId: userId },
+      { _id: userId },
       { $inc: { points: pointsToAdd } },
       { new: true, runValidators: true }
     );
 
     return {
-      userId: updatedUser.userId,
+      userId: updatedUser._id,
       points: updatedUser.points,
     };
   } catch (error) {
@@ -72,12 +102,11 @@ const updatePoints = async (userId, pointsToAdd) => {
 const notifyMe = async (req, res, next) => {
   try {
     const { userId, email } = req.body;
-    let user = await User.findOne({ userId: userId });
+    let user = await User.findOne({ _id: userId });
     if (user) {
       return res.status(404).json({ message: "Ya hay un email asignado" });
     } else {
       user = new User({
-        userId: userId,
         email: email,
       });
       await user.save();
@@ -87,4 +116,4 @@ const notifyMe = async (req, res, next) => {
     return next(error);
   }
 };
-module.exports = { registerUser, updatePoints, getUserPoints, notifyMe };
+module.exports = { registerUser, getUserData, updateUser, updatePoints, getUserPoints, notifyMe };

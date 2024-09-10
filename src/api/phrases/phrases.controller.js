@@ -26,12 +26,14 @@ const getPhrase = async () => {
       { $set: { used: true, number: howManyUsed } }
     );
     //los juegos del día anterior que no estén terminados se consideran perdidos
-    await Game.updateMany({phraseNumber:{ $lt: howManyUsed }, gameResult:""},{$set:{gameResult:"lose"}})
-   
+    await Game.updateMany(
+      { phraseNumber: { $lt: howManyUsed }, gameStatus: "playing" },
+      { $set: { gameStatus: "lose" } }
+    );
+
     randomPhrase.number = howManyUsed;
-    // Eliminar el campo _id de la frase del día
+
     randomPhrase = randomPhrase.toObject();
-    // delete randomPhrase._id;
 
     // Guardar randomPhrase en PhraseOfTheDay tras borrar la anterior
     await PhraseOfTheDay.deleteMany({});
@@ -47,11 +49,23 @@ const getPhrase = async () => {
 };
 const getPhraseOfTheDay = async (req, res, next) => {
   try {
-    const phraseOfTheDay = await Phrase.findOne().sort({ number: -1 });
+    const phraseOfTheDay = await PhraseOfTheDay.findOne();
     if (phraseOfTheDay === null) {
       return res.status(404).json({ message: "No hay frase del día" });
     }
     return res.status(200).json(phraseOfTheDay);
+  } catch (err) {
+    return next(err);
+  }
+};
+
+const getPhraseOfTheDayNumber = async (req, res, next) => {
+  try {
+    const phraseOfTheDay = await PhraseOfTheDay.findOne();
+    if (phraseOfTheDay === null) {
+      return res.status(404).json({ message: "No hay frase del día" });
+    }
+    return res.status(200).json(phraseOfTheDay.number);
   } catch (err) {
     return next(err);
   }
@@ -70,14 +84,16 @@ const addPhrase = async (req, res, next) => {
 const getPhraseByNumber = async (req, res, next) => {
   try {
     const { phraseNumber } = req.params;
-    let phrase=null
+    let phrase = null;
     console.log("buscar frase con number", phraseNumber);
     //Si se pasa un número de frase=0, carga la frase del día
     if (phraseNumber === "0") {
-       phrase = await Phrase.findOne().sort({ number: -1 });
-    } else
+      phrase = await Phrase.findOne().sort({ number: -1 });
+    }
     // Buscar la frase con el número proporcionado
-    { phrase = await Phrase.findOne({ number: phraseNumber });}
+    else {
+      phrase = await Phrase.findOne({ number: phraseNumber });
+    }
     if (!phrase) {
       return res.status(404).json({ message: "No se encuentra la frase" });
     }
@@ -90,12 +106,14 @@ const getPhraseByNumber = async (req, res, next) => {
 const getOldPhrasesStatus = async (req, res, next) => {
   const { playerId } = req.params;
   try {
-    const oldPhrases = await Phrase.find({ used: true})
+    const oldPhrases = await Phrase.find({ used: true })
       .select("number")
       .sort("number");
-      if (oldPhrases.length === 0) {
-        return res.status(200).json({ message: "No se encontraron citas anteriores" });
-      }
+    if (oldPhrases.length === 0) {
+      return res
+        .status(200)
+        .json({ message: "No se encontraron citas anteriores" });
+    }
     const phraseNumbers = oldPhrases.map((phrase) => phrase.number);
     const result = {};
     for (const number of phraseNumbers) {
@@ -107,11 +125,7 @@ const getOldPhrasesStatus = async (req, res, next) => {
       if (!game) {
         result[number] = "np";
       } else {
-        if (game.gameResult === "") {
-          result[number] = "uf";
-        } else {
-          result[number] = game.gameResult;
-        }
+        result[number] = game.gameStatus;
       }
     }
 
@@ -129,5 +143,5 @@ module.exports = {
   addPhrase,
   getPhraseByNumber,
   getOldPhrasesStatus,
-
+  getPhraseOfTheDayNumber,
 };

@@ -9,7 +9,7 @@ function checkEndGame  (phraseStatus,  currentTries, maxTries)  {
         return "lose";
       }
       
-      return "";
+      return "playing";
     }
     module.exports = checkEndGame;
     
