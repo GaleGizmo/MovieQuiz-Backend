@@ -192,7 +192,9 @@ const getUserStats = async (req, res, next) => {
     const games = await Game.find({ userId: userId });
     const wins = games.filter((game) => game.gameStatus === "win").length;
     const losses = games.filter((game) => game.gameStatus === "lose").length;
-    const playing = games.filter((game) => game.gameStatus === "playing").length;
+    const playing = games.filter(
+      (game) => game.gameStatus === "playing"
+    ).length;
     const currentPhraseOfTheDay = await PhraseOfTheDay.findOne();
     const phrasesUntilToday = currentPhraseOfTheDay
       ? currentPhraseOfTheDay.number
@@ -220,18 +222,16 @@ const useClue = async (req, res, next) => {
       return res.status(400).json({ message: "Pista inexistente o inválida" });
     }
     if (clue === "lettersRight" && !wordToTry) {
-      return res
-        .status(400)
-        .json({
-          message: "Palabra no proporcionada para la pista lettersRight",
-        });
+      return res.status(400).json({
+        message: "Palabra no proporcionada para la pista lettersRight",
+      });
     }
 
     const game = await Game.findOne({ _id: gameId });
     if (!game) {
       return res.status(404).json({ message: "Partida no encontrada" });
     }
-    const user = await User.findById(game.userId );
+    const user = await User.findById(game.userId);
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
@@ -243,7 +243,6 @@ const useClue = async (req, res, next) => {
       return res.status(200).json({ unusable: usabilityOfClue });
     }
 
-
     switch (clue) {
       case "letter":
         clueResult = await performLetterClue(
@@ -251,16 +250,21 @@ const useClue = async (req, res, next) => {
           game.lettersFound
         );
         if (clueResult.used) {
-          const updatedGame = await Game.findByIdAndUpdate(
-            gameId,
-            {
-              lettersFound: clueResult.updatedLettersFound,
-              phrase: clueResult.updatedPhrase,
-              "clues.letter.status": false,
-              "clues.letter.value": clueResult.revealedLetter,
-            },
-            { new: true }
-          );
+          const updateData = {
+            lettersFound: clueResult.updatedLettersFound,
+            phrase: clueResult.updatedPhrase,
+            "clues.letter.status": false,
+            "clues.letter.value": clueResult.revealedLetter,
+          };
+
+          // Verificar si era la última letra para actualizar gameStatus
+          if (clueResult.lastLetterRemaining) {
+            updateData.gameStatus = "win";
+          }
+
+          const updatedGame = await Game.findByIdAndUpdate(gameId, updateData, {
+            new: true,
+          });
           updatedGameClues = updatedGame.clues;
         }
         break;
@@ -368,6 +372,10 @@ const performLetterClue = async (NumberOfPhrase, gameLettersFound) => {
   if (undiscoveredPhraseLettersArray.length === 0) {
     return null;
   }
+  let lastLetterRemaining = false;
+  if (undiscoveredPhraseLettersArray.length === 1) {
+    lastLetterRemaining = true;
+  }
 
   let chosenLetter;
 
@@ -386,6 +394,7 @@ const performLetterClue = async (NumberOfPhrase, gameLettersFound) => {
     updatedPhrase: hiddenPhrase,
     revealedLetter: chosenLetter,
     updatedLettersFound: gameLettersFound,
+    lastLetterRemaining: lastLetterRemaining,
     used: true,
   };
 };
