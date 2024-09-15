@@ -10,7 +10,7 @@ const getPhrase = async () => {
     // Buscar todas las frases que no han sido usadas
     const unusedPhrases = await Phrase.find({ used: false });
     if (unusedPhrases.length === 0) {
-      console.log("No hay citas disponibles");
+      console.error("No hay citas disponibles");
       return;
     }
     //cuenta las frases que han sido usadas
@@ -42,7 +42,7 @@ const getPhrase = async () => {
       _id: randomPhrase._id,
     });
     await phraseOfTheDay.save();
-    console.log("Frase del día:", randomPhrase);
+   
   } catch (err) {
     console.error("Error al obtener la frase del día:", err);
   }
@@ -85,7 +85,7 @@ const getPhraseByNumber = async (req, res, next) => {
   try {
     const { phraseNumber } = req.params;
     let phrase = null;
-    console.log("buscar frase con number", phraseNumber);
+    
     //Si se pasa un número de frase=0, carga la frase del día
     if (phraseNumber === "0") {
       phrase = await Phrase.findOne().sort({ number: -1 });

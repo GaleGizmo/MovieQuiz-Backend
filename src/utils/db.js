@@ -10,7 +10,7 @@ const connectDB = async () => {
     const { host } = db.connection;
     console.log("conexión exitosa en el host:" + host);
   } catch (error) {
-    console.log("no se puede conectar a la base de datos, melón ->>", error);
+    console.error("no se puede conectar a la base de datos, melón ->>", error);
   }
 };
 
