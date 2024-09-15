@@ -42,7 +42,6 @@ const getPhrase = async () => {
       _id: randomPhrase._id,
     });
     await phraseOfTheDay.save();
-   
   } catch (err) {
     console.error("Error al obtener la frase del día:", err);
   }
@@ -85,7 +84,7 @@ const getPhraseByNumber = async (req, res, next) => {
   try {
     const { phraseNumber } = req.params;
     let phrase = null;
-    
+
     //Si se pasa un número de frase=0, carga la frase del día
     if (phraseNumber === "0") {
       phrase = await Phrase.findOne().sort({ number: -1 });
@@ -109,6 +108,7 @@ const getOldPhrasesStatus = async (req, res, next) => {
     const oldPhrases = await Phrase.find({ used: true })
       .select("number")
       .sort("number");
+    oldPhrases.pop()
     if (oldPhrases.length === 0) {
       return res
         .status(200)
