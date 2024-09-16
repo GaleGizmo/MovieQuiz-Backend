@@ -15,10 +15,7 @@ const connectDB = async () => {
     const options = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      autoReconnect: true,
-      connectTimeoutMS: 10000, // Tiempo máximo para intentar conectar (10 segundos)
-      socketTimeoutMS: 45000, // Tiempo de espera máximo para las operaciones de socket
-      
+     
     };
 
     const db = await mongoose.connect(DB_ACCESS, options);
