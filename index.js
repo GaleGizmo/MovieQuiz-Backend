@@ -18,7 +18,19 @@ const gameRoutes = require("./src/api/game/game.routes");
 const userRoutes = require("./src/api/users/user.routes")
 
 // Configurar middlewares
-app.use(cors());
+// Configurar CORS para solo permitir ciertos dominios
+const allowedOrigins = ['https://lacitadeldia-front.vercel.app', 'http://localhost:5173']; // Añade tus dominios de producción
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS no permitido para este dominio'));
+    }
+  },
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
