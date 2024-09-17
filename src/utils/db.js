@@ -12,13 +12,9 @@ if (!DB_ACCESS) {
 const connectDB = async () => {
   try {
     mongoose.set("strictQuery", true);
-    const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-     
-    };
+   
 
-    const db = await mongoose.connect(DB_ACCESS, options);
+    const db = await mongoose.connect(DB_ACCESS);
 
     const { host } = db.connection;
     console.log("conexión exitosa en el host:" + host);
