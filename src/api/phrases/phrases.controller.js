@@ -72,13 +72,44 @@ const getPhraseOfTheDayNumber = async (req, res, next) => {
 
 const addPhrase = async (req, res, next) => {
   try {
-    const phrase = new Phrase(req.body.phraseData);
+    // Log para ver qué datos llegan al backend
+    console.log("Datos recibidos en req.body:", req.body);
+
+    // Asegúrate de que req.body.phraseData contiene todos los campos requeridos
+    const { phraseData } = req.body;
+    
+    if (!phraseData) {
+      return res.status(400).json({ error: "Los datos de la frase son requeridos." });
+    }
+
+    // Validación manual de campos requeridos
+    const requiredFields = ['quote', 'movie', 'year', 'director', 'who_said_it', 'poster'];
+    for (let field of requiredFields) {
+      if (!phraseData[field]) {
+        return res.status(400).json({ error: `El campo ${field} es requerido.` });
+      }
+    }
+
+    // Validación de subdocumentos: who_said_it
+    const { who_said_it } = phraseData;
+    if (!who_said_it || !who_said_it.actor || !who_said_it.character || !who_said_it.context) {
+      return res.status(400).json({ error: "Campos dentro de who_said_it son requeridos." });
+    }
+
+    // Crea una nueva frase con los datos validados
+    const phrase = new Phrase(phraseData);
+    
+    // Intenta guardar la frase en la base de datos
     await phrase.save();
+    
     return res.status(201).json(phrase);
   } catch (err) {
+    // Loguear el error con más detalles para depurar mejor
+    console.error("Error al añadir la frase:", err);
     return next(err);
   }
 };
+
 
 const getPhraseByNumber = async (req, res, next) => {
   try {
