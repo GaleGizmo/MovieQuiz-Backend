@@ -15,6 +15,9 @@ const isValidWord = require("../../utils/isValidWord");
 const startGame = async (req, res, next) => {
   try {
     const { userId, phraseToPlay } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: "UserId es requerido." });
+    }
     let currentPhraseToPlay = "";
     if (phraseToPlay) {
       currentPhraseToPlay = await Phrase.findOne({ number: phraseToPlay });
@@ -28,10 +31,7 @@ const startGame = async (req, res, next) => {
       phraseNumber: currentPhraseToPlay.number,
     });
     if (existingGame) {
-      const existingGameForResponse = {
-        ...existingGame.toObject(),
-      };
-      return res.status(200).json(existingGameForResponse);
+      return res.status(200).json(existingGame);
     } else {
       const plainPhrase = removeAccents(currentPhraseToPlay.quote);
       const hiddenPhrase = processPhraseToShow(plainPhrase, []);
@@ -163,7 +163,7 @@ const getActiveGame = async (req, res, next) => {
     const { gameId } = req.params;
     const game = await Game.findOne({ _id: gameId });
     if (!game) {
-      return res.status(404).json({ message: "Game not found" });
+      return res.status(404).json({ message: "Juego no encontrado" });
     }
 
     res.status(200).json(game);
@@ -174,10 +174,15 @@ const getActiveGame = async (req, res, next) => {
 const tryWord = async (req, res, next) => {
   try {
     const { userId, word } = req.body;
-
+    if (!userId) {
+      return res.status(400).json({ message: "UserId es requerido." });
+    }
+    if (!word) {
+      return res.status(400).json({ message: "No hay palabra para chequear." });
+    }
     const game = await Game.findOne({ userId, gameStatus: "playing" });
     if (!game) {
-      return res.status(404).json({ message: "Game not found" });
+      return res.status(404).json({ message: "Juego no encontrado" });
     }
 
     const wordFound = await isValidWord(word);

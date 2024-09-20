@@ -5,6 +5,9 @@ const User = require("./user.model");
 const getUserData = async (req, res, next) => {
   try {
     const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ message: "UserId es requerido." });
+    }
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "Usuario no existe" });
@@ -41,7 +44,9 @@ const updateUser = async (req, res, next) => {
     
     const { userId } = req.params;
     const {userData} = req.body;
-    
+    if (!userId) {
+      return res.status(400).json({ message: "UserId es requerido." });
+    }
     const user = await User.findByIdAndUpdate(
       userId,
       userData,
@@ -61,6 +66,9 @@ const updateUser = async (req, res, next) => {
 const getUserPoints = async (req, res, next) => {
   try {
     const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ message: "UserId es requerido." });
+    }
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "Usuario no existe" });
