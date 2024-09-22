@@ -19,7 +19,7 @@ const userRoutes = require("./src/api/users/user.routes")
 
 
 // Configurar CORS para solo permitir ciertos dominios
-const allowedOrigins = ['https://lacitadeldia-front.vercel.app','https://moviequiz-frontend.app.rockthebarrio.es', 'http://localhost:5173']; 
+const allowedOrigins = ['https://lacitadeldia-front.vercel.app','https://moviequiz-frontend.app.rockthebarrio.es', 'http://localhost:5173', 'https://lacitadeldia.com', 'https://www.lacitadeldia.com']; 
 
 app.use(cors({
   origin: function (origin, callback) {
