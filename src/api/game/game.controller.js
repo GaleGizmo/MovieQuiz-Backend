@@ -76,6 +76,11 @@ const updateGame = async (req, res, next) => {
     }
     let { triedWord, gameResultNotification } = gameData;
 
+    if (triedWord && triedWord.length!=5){
+      return res.status(400).json({ message: "La palabra debe tener 5 letras" });
+    }
+    
+
     if (gameResultNotification) {
       const game = await Game.findByIdAndUpdate(
         gameId,
