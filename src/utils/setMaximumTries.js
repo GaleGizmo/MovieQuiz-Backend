@@ -40,7 +40,7 @@ function setMaximumTries(text) {
   maximumTries++;
   //Limita el máximo y mínimo de intentos
   if (maximumTries <3 ) maximumTries =3;
-  if (maximumTries >6) maximumTries =6;
+  if (maximumTries >7) maximumTries =7;
 
 
   // Devolvemos el número de intentos
