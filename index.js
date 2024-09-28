@@ -16,6 +16,7 @@ db.connectDB();
 const phrasesRoutes = require("./src/api/phrases/phrases.routes");
 const gameRoutes = require("./src/api/game/game.routes");
 const userRoutes = require("./src/api/users/user.routes")
+const messagesRoutes = require("./src/api/messages/messages.routes.js")
 
 
 // Configurar CORS para solo permitir ciertos dominios
@@ -38,6 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/phrases", phrasesRoutes);
 app.use("/game", gameRoutes);
 app.use("/user", userRoutes)
+app.use("/messages", messagesRoutes)
 
 app.use((err, req, res, next) => {
   return res.status(err.status || 500).json(err.message || "Unexpected error");
