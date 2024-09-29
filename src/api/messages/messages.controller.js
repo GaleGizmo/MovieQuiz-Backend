@@ -36,7 +36,7 @@ const addMessage = async (req, res) => {
   if (!message) {
     return res.status(400).json({ message: "No se recibió ningún mensaje" });
   }
-  if (!message.subject && !message.content) {
+  if (!message.content) {
     return res.status(400).json({ message: "El mensaje no tiene contenido" });
   }
   try {

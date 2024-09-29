@@ -7,7 +7,7 @@ const messagesSchema = mongoose.Schema(
     name: {type: String, required: false, unique: false },
     email: { type: String, required: false, unique: false },
     type: { type: String, required: true, unique: false, enum: ["error", "suggestion", "question", "other"] },
-    subject: { type: String, required: false, unique: false },
+    
     content: { type: String, required: false, unique: false },
     newMessage: { type: Boolean, required: true, default: true },
   },
