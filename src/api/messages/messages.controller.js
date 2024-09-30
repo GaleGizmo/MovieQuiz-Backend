@@ -42,6 +42,9 @@ const addMessage = async (req, res) => {
   try {
     const newMessage = new Messages(message);
     await newMessage.save();
+    if (message.email){
+        await sendMessages([newMessage]);
+    }
     res.status(201).json(newMessage);
   } catch (error) {
     res
@@ -49,5 +52,5 @@ const addMessage = async (req, res) => {
       .json({ message: "Error al guardar el mensaje", error: error.message });
   }
 };
-getAndSendMessages();
+
 module.exports = { getAndSendMessages, addMessage };
