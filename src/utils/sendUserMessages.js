@@ -32,7 +32,7 @@ const sendMessages = async (messages) => {
         Nombre: ${message.name || 'Anónimo'}
         Email: ${message.email || 'No especificado'}
         Tipo: ${message.type}
-        Asunto: ${message.subject || 'Sin asunto'}
+       
         
         Mensaje:
         ${message.content || 'Sin mensaje'}
@@ -42,7 +42,7 @@ const sendMessages = async (messages) => {
       const mailOptions = {
         from: '"Formulario de contacto" <info@lacitadeldia.com>', // Remitente
         to: 'info@lacitadeldia.com', // Dirección de destino
-        subject: message.subject || 'Nuevo mensaje recibido', // Asunto del correo
+        subject: 'Nuevo mensaje recibido', // Asunto del correo
         text: mailContent // Cuerpo del correo en texto plano
       };
 
