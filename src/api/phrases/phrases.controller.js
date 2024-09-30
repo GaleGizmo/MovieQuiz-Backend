@@ -27,7 +27,11 @@ const getPhrase = async () => {
     );
     //los juegos del día anterior que no estén terminados se consideran perdidos
     await Game.updateMany(
-      { phraseNumber: { $lt: howManyUsed }, gameStatus: "playing" },
+      {
+        phraseNumber: { $lt: howManyUsed },
+        gameStatus: "playing",
+        triedWords: { $exists: true, $not: { $size: 0 } },
+      },
       { $set: { gameStatus: "lose" } }
     );
 
@@ -77,31 +81,49 @@ const addPhrase = async (req, res, next) => {
 
     // Asegúrate de que req.body.phraseData contiene todos los campos requeridos
     const { phraseData } = req.body;
-    
+
     if (!phraseData) {
-      return res.status(400).json({ error: "Los datos de la frase son requeridos." });
+      return res
+        .status(400)
+        .json({ error: "Los datos de la frase son requeridos." });
     }
 
     // Validación manual de campos requeridos
-    const requiredFields = ['quote', 'movie', 'year', 'director', 'who_said_it', 'poster'];
+    const requiredFields = [
+      "quote",
+      "movie",
+      "year",
+      "director",
+      "who_said_it",
+      "poster",
+    ];
     for (let field of requiredFields) {
       if (!phraseData[field]) {
-        return res.status(400).json({ error: `El campo ${field} es requerido.` });
+        return res
+          .status(400)
+          .json({ error: `El campo ${field} es requerido.` });
       }
     }
 
     // Validación de subdocumentos: who_said_it
     const { who_said_it } = phraseData;
-    if (!who_said_it || !who_said_it.actor || !who_said_it.character || !who_said_it.context) {
-      return res.status(400).json({ error: "Campos dentro de who_said_it son requeridos." });
+    if (
+      !who_said_it ||
+      !who_said_it.actor ||
+      !who_said_it.character ||
+      !who_said_it.context
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Campos dentro de who_said_it son requeridos." });
     }
 
     // Crea una nueva frase con los datos validados
     const phrase = new Phrase(phraseData);
-    
+
     // Intenta guardar la frase en la base de datos
     await phrase.save();
-    
+
     return res.status(201).json(phrase);
   } catch (err) {
     // Loguear el error con más detalles para depurar mejor
@@ -109,7 +131,6 @@ const addPhrase = async (req, res, next) => {
     return next(err);
   }
 };
-
 
 const getPhraseByNumber = async (req, res, next) => {
   try {
@@ -139,7 +160,7 @@ const getOldPhrasesStatus = async (req, res, next) => {
     const oldPhrases = await Phrase.find({ used: true })
       .select("number")
       .sort("number");
-    oldPhrases.pop()
+    oldPhrases.pop();
     if (oldPhrases.length === 0) {
       return res
         .status(200)
