@@ -160,7 +160,7 @@ const getOldPhrasesStatus = async (req, res, next) => {
     const oldPhrases = await Phrase.find({ used: true })
       .select("number")
       .sort("number");
-    oldPhrases.pop();
+   
     if (oldPhrases.length === 0) {
       return res
         .status(200)
