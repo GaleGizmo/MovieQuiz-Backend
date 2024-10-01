@@ -40,11 +40,18 @@ const addMessage = async (req, res) => {
     return res.status(400).json({ message: "El mensaje no tiene contenido" });
   }
   try {
+    if (message.email) {
+      const success = await sendMessages([message]); 
+
+      if (success) {
+        message.newMessage = false;
+      } else {
+        console.error("Error: No se pudieron enviar todos los mensajes.");
+      }
+    }
     const newMessage = new Messages(message);
     await newMessage.save();
-    if (message.email){
-        await sendMessages([newMessage]);
-    }
+
     res.status(201).json(newMessage);
   } catch (error) {
     res
