@@ -41,27 +41,45 @@ const registerUser = async (req, res, next) => {
 
 const updateUser = async (req, res, next) => {
   try {
-    
     const { userId } = req.params;
-    const {userData} = req.body;
+    const { userData } = req.body;
+
     if (!userId) {
       return res.status(400).json({ message: "UserId es requerido." });
     }
+
+    // Inicializamos el objeto de actualización
+    const update = { ...userData }; // Copiamos los demás campos de userData
+
+    // Si está presente phrasesWon, lo añadimos al array correspondiente usando $push
+    if (userData.phrasesWon !== undefined) {
+      update.$push = { phrasesWon: userData.phrasesWon };
+      delete update.phrasesWon; // Eliminamos phrasesWon de los demás campos para evitar conflictos
+    }
+
+    // Si está presente phrasesLost, lo añadimos al array correspondiente usando $push
+    if (userData.phrasesLost !== undefined) {
+      update.$push = { phrasesLost: userData.phrasesLost };
+      delete update.phrasesLost; // Eliminamos phrasesLost para evitar conflictos
+    }
+
+    // Actualizamos el usuario con los campos correspondientes
     const user = await User.findByIdAndUpdate(
       userId,
-      userData,
+      update,
       { new: true, runValidators: true }
     );
+
     if (!user) {
       return res.status(404).json({ message: "Usuario no existe" });
     }
-    
 
     return res.status(200).json(user);
   } catch (error) {
     return next(error);
   }
 };
+
 
 const getUserPoints = async (req, res, next) => {
   try {

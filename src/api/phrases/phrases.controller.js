@@ -157,29 +157,33 @@ const getPhraseByNumber = async (req, res, next) => {
 const getOldPhrasesStatus = async (req, res, next) => {
   const { playerId } = req.params;
   try {
-    const oldPhrases = await Phrase.find({ used: true })
-      .select("number")
-      .sort("number");
+    const latestPhrase = await PhraseOfTheDay.findOne()
    
-    if (oldPhrases.length === 0) {
+    if (!latestPhrase) {
       return res
         .status(200)
         .json({ message: "No se encontraron citas anteriores" });
     }
-    const phraseNumbers = oldPhrases.map((phrase) => phrase.number);
-    const result = {};
-    for (const number of phraseNumbers) {
-      const game = await Game.findOne({
-        phraseNumber: number,
-        userId: playerId,
-      });
+    const maxNumber = latestPhrase.number; // Máximo número de frase
+    const phraseNumbers = Array.from({ length: maxNumber }, (_, i) => i + 1);
 
-      if (!game) {
-        result[number] = "np";
-      } else {
-        result[number] = game.gameStatus;
-      }
-    }
+ // Consulta todos los juegos de ese jugador con las frases obtenidas
+    const games = await Game.find({
+      phraseNumber: { $in: phraseNumbers },
+      userId: playerId,
+    });
+
+    // Creamos un objeto con los resultados de las frases jugadas
+    const gameStatusMap = {};
+    games.forEach((game) => {
+      gameStatusMap[game.phraseNumber] = game.gameStatus;
+    });
+
+    // Construimos el objeto result, asignando "np" a las frases no jugadas
+    const result = {};
+    phraseNumbers.forEach((number) => {
+      result[number] = gameStatusMap[number] || "np"; 
+    });
 
     return res.status(200).json(result);
   } catch (err) {
