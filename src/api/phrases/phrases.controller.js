@@ -181,11 +181,21 @@ const getOldPhrasesStatus = async (req, res, next) => {
 
     // Construimos el objeto result, asignando "np" a las frases no jugadas
     const result = {};
+    let counts = { win: 0, lose: 0, playing: 0, np: 0 };
     phraseNumbers.forEach((number) => {
-      result[number] = gameStatusMap[number] || "np"; 
+      const status = gameStatusMap[number] || "np"; 
+      result[number] = status;
+      counts[status]++;
     });
-
-    return res.status(200).json(result);
+    const totalPlayed = counts.win + counts.lose;
+    const percentages = {
+      win: totalPlayed > 0 ? Math.round((counts.win / totalPlayed) * 100) + "%" : "0%",
+      lose: totalPlayed > 0 ? Math.round((counts.lose / totalPlayed) * 100) + "%" : "0%"
+    };
+    return res.status(200).json({result, // Estados de las frases
+      percentages, // Porcentajes de win y lose
+      playing: counts.playing, 
+      np: counts.np});
   } catch (err) {
     return next(err);
   }
