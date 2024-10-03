@@ -10,7 +10,7 @@ const checkEndGame = require("../../utils/checkEndGame.js");
 const { updatePoints } = require("../users/user.controller.js");
 const User = require("../users/user.model.js");
 const isLetter = require("../../utils/isLetter.js");
-const isValidWord = require("../../utils/isValidWord");
+const {isValidWord} = require("../../utils/isValidWord.js");
 
 const startGame = async (req, res, next) => {
   try {
