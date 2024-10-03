@@ -8,15 +8,25 @@ const http = require("http");
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 5000; // Convertir el puerto a número
 const db = require("./src/utils/db.js");
+const { loadWordsIntoMemory } = require("./src/utils/isValidWord.js");
 
 // Conectar a la base de datos
 db.connectDB();
+
+loadWordsIntoMemory()
+  .then(() => {
+    console.log("Todas las palabras han sido cargadas en memoria.");
+  })
+  .catch((err) => {
+    console.error("Error cargando las palabras en memoria:", err);
+  });
 
 // Importar rutas
 const phrasesRoutes = require("./src/api/phrases/phrases.routes");
 const gameRoutes = require("./src/api/game/game.routes");
 const userRoutes = require("./src/api/users/user.routes")
-const messagesRoutes = require("./src/api/messages/messages.routes.js")
+const messagesRoutes = require("./src/api/messages/messages.routes.js");
+
 
 
 // Configurar CORS para solo permitir ciertos dominios
