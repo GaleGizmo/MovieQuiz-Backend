@@ -83,10 +83,12 @@ const updateGame = async (req, res, next) => {
         .status(400)
         .json({ message: "La palabra debe tener 5 letras" });
     }
-    const checkWord = await isValidWord(triedWord);
-    if (!checkWord.wordIsValid) {
-      
-      return res.status(200).json({ deleteFromTried:triedWord, message: checkWord.message });
+    if(triedWord) {
+      const checkWord = await isValidWord(triedWord);
+      if (!checkWord.wordIsValid) {
+        
+        return res.status(200).json({ deleteFromTried:triedWord, message: checkWord.message });
+      }
     }
     if (gameResultNotification) {
       const game = await Game.findByIdAndUpdate(
