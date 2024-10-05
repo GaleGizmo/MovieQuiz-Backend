@@ -2,6 +2,7 @@
 
 const fs = require("fs").promises;
 const path = require("path");
+const getRandomInvalidWordMessage = require("./randomInvalidWordMessages");
 
 // Almacenará todas las palabras en memoria, agrupadas por letra
 const wordsByLetter = {};
@@ -30,12 +31,15 @@ function isValidWord(wordToCheck) {
   const firstLetter = normalizedWord.charAt(0); 
 
   // Verificamos si la palabra está en la memoria
-  if (wordsByLetter[firstLetter]) {
-    return wordsByLetter[firstLetter].has(normalizedWord);
+  if (wordsByLetter[firstLetter] && wordsByLetter[firstLetter].has(normalizedWord)) {
+    return {wordIsValid:true};
+  } else {
+    const message = getRandomInvalidWordMessage();
+    return {wordIsValid:false, message:message};
   }
 
   // Si no existe, retornamos false
-  return false;
+ 
 }
 
 module.exports = { isValidWord, loadWordsIntoMemory };

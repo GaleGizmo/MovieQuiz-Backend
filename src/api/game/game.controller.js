@@ -12,6 +12,7 @@ const User = require("../users/user.model.js");
 const isLetter = require("../../utils/isLetter.js");
 const {isValidWord} = require("../../utils/isValidWord.js");
 
+
 const startGame = async (req, res, next) => {
   try {
     const { userId, phraseToPlay } = req.body;
@@ -71,6 +72,7 @@ const updateGame = async (req, res, next) => {
       return res.status(404).json({ message: "Juego no encontrado" });
     }
     const { gameData } = req.body;
+    
     if (!gameData.triedWord && !gameData.gameResultNotification) {
       return res.status(400).json({ message: "Datos de juego son requeridos" });
     }
@@ -81,7 +83,11 @@ const updateGame = async (req, res, next) => {
         .status(400)
         .json({ message: "La palabra debe tener 5 letras" });
     }
-
+    const checkWord = await isValidWord(triedWord);
+    if (!checkWord.wordIsValid) {
+      
+      return res.status(200).json({ deleteFromTried:triedWord, message: checkWord.message });
+    }
     if (gameResultNotification) {
       const game = await Game.findByIdAndUpdate(
         gameId,
@@ -191,8 +197,8 @@ const tryWord = async (req, res, next) => {
       return res.status(404).json({ message: "Juego no encontrado" });
     }
 
-    const wordFound = await isValidWord(word);
-    return res.status(200).json({ wordFound });
+    const checkWord = await isValidWord(word);
+    return res.status(200).json(checkWord);
   } catch (err) {
     next(err);
   }
