@@ -14,22 +14,22 @@ const gameSchema = new Schema(
     clues: {
       actor: {
         status: { type: Boolean, default: true },
-        price: { type: Number, default: 15 },
+        price: { type: Number, default: 10 },
         value: { type: String },
       },
       director: {
         status: { type: Boolean, default: true },
-        price: { type: Number, default: 15 },
+        price: { type: Number, default: 10 },
         value: { type: String },
       },
       letter: {
         status: { type: Boolean, default: true },
-        price: { type: Number, default: 50 },
+        price: { type: Number, default: 30 },
         value: { type: String },
       },
       lettersRight: {
         status: { type: Boolean, default: true },
-        price: { type: Number, default: 25 },
+        price: { type: Number, default: 20 },
         value: {
           commons: { type: Number },
           word: { type: String },
