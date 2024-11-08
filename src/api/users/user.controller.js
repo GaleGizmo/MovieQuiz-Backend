@@ -15,7 +15,6 @@ const getUserData = async (req, res, next) => {
     const userForFront = {
       _id: user._id,
       dontShowInstructions: user.dontShowInstructions,
-      
     };
     return res.status(200).json(userForFront);
   } catch (error) {
@@ -30,8 +29,6 @@ const registerUser = async (req, res, next) => {
       _id: user._id,
       instructions: user.dontShowInstructions,
     };
-
-   
 
     return res.status(201).json(userForFront);
   } catch (error) {
@@ -64,11 +61,10 @@ const updateUser = async (req, res, next) => {
     }
 
     // Actualizamos el usuario con los campos correspondientes
-    const user = await User.findByIdAndUpdate(
-      userId,
-      update,
-      { new: true, runValidators: true }
-    );
+    const user = await User.findByIdAndUpdate(userId, update, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!user) {
       return res.status(404).json({ message: "Usuario no existe" });
@@ -80,7 +76,6 @@ const updateUser = async (req, res, next) => {
   }
 };
 
-
 const getUserPoints = async (req, res, next) => {
   try {
     const { userId } = req.params;
@@ -91,7 +86,7 @@ const getUserPoints = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: "Usuario no existe" });
     }
-    return res.status(200).json({ points: user.points });
+    return res.status(200).json({ points: user.points, ranking: user.ranking });
   } catch (error) {
     return next(error);
   }
@@ -142,4 +137,63 @@ const notifyMe = async (req, res, next) => {
     return next(error);
   }
 };
-module.exports = { registerUser, getUserData, updateUser, updatePoints, getUserPoints, notifyMe };
+const añadirCampoRanking = async () => {
+  try {
+    const resultado = await User.updateMany(
+      { ranking: { $exists: false } }, // Condición para los que no tienen `ranking`
+      { $set: { ranking: 0 } } // Añadir `ranking` con valor `null`
+    );
+    await updateDailyRanking();
+    console.log(
+      `Campo 'ranking' añadido a ${resultado.modifiedCount} usuarios.`
+    );
+  } catch (error) {
+    console.error("Error al añadir el campo 'ranking':", error);
+  }
+};
+añadirCampoRanking();
+const updateDailyRanking = async () => {
+  try {
+    // Obtener todos los usuarios y ordenarlos por puntos en orden descendente
+    const users = await User.find().sort({ points: -1 });
+
+    // Crear el array de operaciones de escritura en bloque
+    const bulkOperations = [];
+    let currentRank = 1;
+
+    for (let i = 0; i < users.length; i++) {
+      const user = users[i];
+
+      // Asignar el ranking actual; si es el primer usuario o si tiene menos puntos que el usuario anterior
+      if (i > 0 && user.points < users[i - 1].points) {
+        currentRank = i + 1;
+      }
+
+      // Añadir la operación de actualización al array de operaciones en bloque
+      bulkOperations.push({
+        updateOne: {
+          filter: { _id: user._id },
+          update: { $set: { ranking: currentRank } },
+        },
+      });
+    }
+
+    // Ejecutar las operaciones en una sola llamada a la base de datos
+    const resultado = await User.bulkWrite(bulkOperations);
+    console.log(
+      `Ranking actualizado exitosamente. ${resultado.modifiedCount} usuarios modificados.`
+    );
+  } catch (error) {
+    console.error("Error al actualizar el ranking:", error);
+  }
+};
+
+module.exports = {
+  registerUser,
+  getUserData,
+  updateUser,
+  updatePoints,
+  getUserPoints,
+  notifyMe,
+  updateDailyRanking,
+};

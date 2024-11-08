@@ -15,6 +15,10 @@ const getPhrase = async () => {
     }
     //cuenta las frases que han sido usadas
     let howManyUsed = await Phrase.countDocuments({ used: true });
+    //elimina los juegos que no se han llegado a empezar
+    await deleteUnstartedGames(howManyUsed);
+
+
     howManyUsed++;
     //Elige una frase al azar entre las no usadas
     const randomIndex = Math.floor(Math.random() * unusedPhrases.length);
@@ -25,7 +29,7 @@ const getPhrase = async () => {
       { _id: randomPhrase._id },
       { $set: { used: true, number: howManyUsed } }
     );
-    //los juegos del día anterior que no estén terminados se consideran perdidos
+    //los juegos del día anterior que se hayan empezado y no estén terminados se consideran perdidos
     await Game.updateMany(
       {
         phraseNumber: { $lt: howManyUsed },
@@ -34,6 +38,8 @@ const getPhrase = async () => {
       },
       { $set: { gameStatus: "lose" } }
     );
+    
+    
 
     randomPhrase.number = howManyUsed;
 
@@ -48,6 +54,19 @@ const getPhrase = async () => {
     await phraseOfTheDay.save();
   } catch (err) {
     console.error("Error al obtener la frase del día:", err);
+  }
+};
+
+const deleteUnstartedGames = async (previousPhraseNumber) => {
+  try {
+   const result= await Game.deleteMany({
+      gameStatus: "playing",
+      currentTry: 0,
+      phraseNumber: { $lte: previousPhraseNumber },
+    });
+    console.log("Juegos sin empezar borrados:", result.deletedCount);
+  } catch (err) {
+    console.error("Error al borrar los juegos sin empezar:", err);
   }
 };
 const getPhraseOfTheDay = async (req, res, next) => {
@@ -157,8 +176,8 @@ const getPhraseByNumber = async (req, res, next) => {
 const getOldPhrasesStatus = async (req, res, next) => {
   const { playerId } = req.params;
   try {
-    const latestPhrase = await PhraseOfTheDay.findOne()
-   
+    const latestPhrase = await PhraseOfTheDay.findOne();
+
     if (!latestPhrase) {
       return res
         .status(200)
@@ -167,7 +186,7 @@ const getOldPhrasesStatus = async (req, res, next) => {
     const maxNumber = latestPhrase.number; // Máximo número de frase
     const phraseNumbers = Array.from({ length: maxNumber }, (_, i) => i + 1);
 
- // Consulta todos los juegos de ese jugador con las frases obtenidas
+    // Consulta todos los juegos de ese jugador con las frases obtenidas
     const games = await Game.find({
       phraseNumber: { $in: phraseNumbers },
       userId: playerId,
@@ -183,19 +202,27 @@ const getOldPhrasesStatus = async (req, res, next) => {
     const result = {};
     let counts = { win: 0, lose: 0, playing: 0, np: 0 };
     phraseNumbers.forEach((number) => {
-      const status = gameStatusMap[number] || "np"; 
+      const status = gameStatusMap[number] || "np";
       result[number] = status;
       counts[status]++;
     });
     const totalPlayed = counts.win + counts.lose;
     const percentages = {
-      win: totalPlayed > 0 ? Math.round((counts.win / totalPlayed) * 100) + "%" : "0%",
-      lose: totalPlayed > 0 ? Math.round((counts.lose / totalPlayed) * 100) + "%" : "0%"
+      win:
+        totalPlayed > 0
+          ? Math.round((counts.win / totalPlayed) * 100) + "%"
+          : "0%",
+      lose:
+        totalPlayed > 0
+          ? Math.round((counts.lose / totalPlayed) * 100) + "%"
+          : "0%",
     };
-    return res.status(200).json({result, // Estados de las frases
+    return res.status(200).json({
+      result, // Estados de las frases
       percentages, // Porcentajes de win y lose
-      playing: counts.playing, 
-      np: counts.np});
+      playing: counts.playing,
+      np: counts.np,
+    });
   } catch (err) {
     return next(err);
   }
