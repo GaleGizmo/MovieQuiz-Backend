@@ -86,7 +86,34 @@ const getUserPoints = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: "Usuario no existe" });
     }
-    return res.status(200).json({ points: user.points, ranking: user.ranking });
+    return res
+      .status(200)
+      .json({
+        points: user.points,
+        ranking: user.ranking,
+        trend: user.rankingTrend,
+      });
+  } catch (error) {
+    return next(error);
+  }
+};
+const getUserRanking = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ message: "UserId es requerido." });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no existe" });
+    }
+    return res
+      .status(200)
+      .json({
+        
+        ranking: user.ranking,
+        trend: user.rankingTrend,
+      });
   } catch (error) {
     return next(error);
   }
@@ -137,11 +164,11 @@ const notifyMe = async (req, res, next) => {
     return next(error);
   }
 };
-const añadirCampoRanking = async () => {
+const añadirCampoRankingTrend = async () => {
   try {
     const resultado = await User.updateMany(
-      { ranking: { $exists: false } }, // Condición para los que no tienen `ranking`
-      { $set: { ranking: 0 } } // Añadir `ranking` con valor `null`
+      { rankingTrend: { $exists: false } },
+      { $set: { rankingTrend: "" } }
     );
     await updateDailyRanking();
     console.log(
@@ -151,7 +178,8 @@ const añadirCampoRanking = async () => {
     console.error("Error al añadir el campo 'ranking':", error);
   }
 };
-añadirCampoRanking();
+añadirCampoRankingTrend();
+
 const updateDailyRanking = async () => {
   try {
     // Obtener todos los usuarios y ordenarlos por puntos en orden descendente
@@ -160,20 +188,31 @@ const updateDailyRanking = async () => {
     // Crear el array de operaciones de escritura en bloque
     const bulkOperations = [];
     let currentRank = 1;
-
+    let currentTrend = "";
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
-
+      let previousRank = user.ranking || null;
       // Asignar el ranking actual; si es el primer usuario o si tiene menos puntos que el usuario anterior
       if (i > 0 && user.points < users[i - 1].points) {
         currentRank = i + 1;
+      }
+      if (previousRank !== null) {
+        if (currentRank > user.ranking) {
+          currentTrend = "↓";
+        } else if (currentRank < user.ranking) {
+          currentTrend = "↑";
+        } else {
+          currentTrend = "";
+        }
       }
 
       // Añadir la operación de actualización al array de operaciones en bloque
       bulkOperations.push({
         updateOne: {
           filter: { _id: user._id },
-          update: { $set: { ranking: currentRank } },
+          update: {
+            $set: { ranking: currentRank, rankingTrend: currentTrend },
+          },
         },
       });
     }
@@ -194,6 +233,7 @@ module.exports = {
   updateUser,
   updatePoints,
   getUserPoints,
+  getUserRanking,
   notifyMe,
   updateDailyRanking,
 };
