@@ -164,21 +164,21 @@ const notifyMe = async (req, res, next) => {
     return next(error);
   }
 };
-const añadirCampoRankingTrend = async () => {
-  try {
-    const resultado = await User.updateMany(
-      { rankingTrend: { $exists: false } },
-      { $set: { rankingTrend: "" } }
-    );
-    await updateDailyRanking();
-    console.log(
-      `Campo 'ranking' añadido a ${resultado.modifiedCount} usuarios.`
-    );
-  } catch (error) {
-    console.error("Error al añadir el campo 'ranking':", error);
-  }
-};
-añadirCampoRankingTrend();
+// const añadirCampoRankingTrend = async () => {
+//   try {
+//     const resultado = await User.updateMany(
+//       { rankingTrend: { $exists: false } },
+//       { $set: { rankingTrend: "" } }
+//     );
+//     await updateDailyRanking();
+//     console.log(
+//       `Campo 'ranking' añadido a ${resultado.modifiedCount} usuarios.`
+//     );
+//   } catch (error) {
+//     console.error("Error al añadir el campo 'ranking':", error);
+//   }
+// };
+// añadirCampoRankingTrend();
 
 const updateDailyRanking = async () => {
   try {
@@ -226,7 +226,7 @@ const updateDailyRanking = async () => {
     console.error("Error al actualizar el ranking:", error);
   }
 };
-
+updateDailyRanking();
 module.exports = {
   registerUser,
   getUserData,

@@ -4,7 +4,7 @@ const Phrase = require("./phrases.model.js");
 const PhraseOfTheDay = require("./phraseoftheday.model.js");
 const Game = require("../game/game.model.js");
 
-// coge una frase de las que no han sido usadas, la copia a FraseDelDia y la marca como usada
+// coge una frase al azar de las que no han sido usadas, la copia a FraseDelDia y la marca como usada
 const getPhrase = async () => {
   try {
     // Buscar todas las frases que no han sido usadas
@@ -21,8 +21,20 @@ const getPhrase = async () => {
 
     howManyUsed++;
     //Elige una frase al azar entre las no usadas
-    const randomIndex = Math.floor(Math.random() * unusedPhrases.length);
-    let randomPhrase = unusedPhrases[randomIndex];
+    let isNotValidPhrase = true;
+    let randomPhrase = null;
+    let randomIndex = 0
+    //comprueba que no se elijan dos frases seguidas de la misma película
+    while (isNotValidPhrase) {
+       randomIndex = Math.floor(Math.random() * unusedPhrases.length);
+       randomPhrase = unusedPhrases[randomIndex];
+      const previousPhrase = await PhraseOfTheDay.findOne();
+      if (previousPhrase.movie!=randomPhrase.movie) {
+        isNotValidPhrase = false;
+      } else {console.log("Frase de la misma película, eligiendo otra")}
+    }
+    // const randomIndex = Math.floor(Math.random() * unusedPhrases.length);
+    // let randomPhrase = unusedPhrases[randomIndex];
 
     // Marca la frase elegida como usada y numérala en la base de datos
     await Phrase.updateOne(
@@ -228,7 +240,7 @@ const getOldPhrasesStatus = async (req, res, next) => {
   }
 };
 
-// getPhrase()
+getPhrase()
 
 module.exports = {
   getPhrase,
