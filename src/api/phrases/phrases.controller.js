@@ -240,7 +240,7 @@ const getOldPhrasesStatus = async (req, res, next) => {
   }
 };
 
-getPhrase()
+// getPhrase()
 
 module.exports = {
   getPhrase,
