@@ -75,7 +75,33 @@ const updateUser = async (req, res, next) => {
     return next(error);
   }
 };
+const buyPhraseDetails = async(req, res, next) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ message: "UserId es requerido." });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no existe" });
+    }
+    if (user.points < 20) {
+      return res.status(400).json({ message: "Puntos insuficientes." });
+    }
+      const updatedUser = await User.findOneAndUpdate(
+      { _id: userId },
+      { $inc: { points: -20 } },
+      { new: true, runValidators: true }
+    );
 
+    return res.status(200).json({
+      userId: updatedUser._id,
+      points: updatedUser.points,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
 const getUserPoints = async (req, res, next) => {
   try {
     const { userId } = req.params;
@@ -226,7 +252,7 @@ const updateDailyRanking = async () => {
     console.error("Error al actualizar el ranking:", error);
   }
 };
-updateDailyRanking();
+// updateDailyRanking();
 module.exports = {
   registerUser,
   getUserData,
@@ -236,4 +262,5 @@ module.exports = {
   getUserRanking,
   notifyMe,
   updateDailyRanking,
+  buyPhraseDetails
 };

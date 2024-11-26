@@ -73,10 +73,10 @@ const updateGame = async (req, res, next) => {
     }
     const { gameData } = req.body;
     
-    if (!gameData.triedWord && !gameData.gameResultNotification) {
+    if (!gameData) {
       return res.status(400).json({ message: "Datos de juego son requeridos" });
     }
-    let { triedWord, gameResultNotification } = gameData;
+    let { triedWord, gameResultNotification, hasBoughtDetails } = gameData;
 
     if (triedWord && triedWord.length != 5) {
       return res
@@ -90,20 +90,29 @@ const updateGame = async (req, res, next) => {
         return res.status(200).json({ deleteFromTried:triedWord, message: checkWord.message });
       }
     }
-    if (gameResultNotification) {
+    //Comprueba si hay que actualizar gameResultNotification o hasBoughtDetails
+    const updateField = gameResultNotification
+    ? { gameResultNotification }
+    : hasBoughtDetails
+    ? { hasBoughtDetails }
+    : null;
+
+    if (updateField) {
+     
       const game = await Game.findByIdAndUpdate(
         gameId,
-        {
-          gameResultNotification,
-        },
+        
+          updateField
+        ,
         { new: true }
       );
       const gameDataResponse = {
-        ...game.toObject(), // Convierte el documento Mongoose a un objeto plano
+        ...game.toObject(),
+        newLetters: [], // Convierte el documento Mongoose a un objeto plano
       };
-      gameDataResponse.newLetters = [];
+     
       res.status(200).json(gameDataResponse);
-    } else {
+    }  else {
       let currentPhrasePlaying = await Phrase.findOne({
         number: currentGame.phraseNumber,
       });

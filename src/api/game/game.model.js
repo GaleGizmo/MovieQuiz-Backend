@@ -38,6 +38,7 @@ const gameSchema = new Schema(
     },
 
     gameResultNotification: { type: Boolean, default: false },
+    hasBoughtDetails: { type: Boolean, default: false },
     currentTry: { type: Number, default: 0 },
     gameStatus: {type: String, default:"playing"}
   },
