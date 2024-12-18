@@ -3,38 +3,37 @@ const Phrase = require("./phrases.model.js");
 
 const PhraseOfTheDay = require("./phraseoftheday.model.js");
 const Game = require("../game/game.model.js");
+const User = require("../users/user.model.js");
 
 // coge una frase al azar de las que no han sido usadas, la copia a FraseDelDia y la marca como usada
 const getPhrase = async () => {
   try {
+    const previousPhrase = await PhraseOfTheDay.findOne();
     // Buscar todas las frases que no han sido usadas
     const unusedPhrases = await Phrase.find({ used: false });
     if (unusedPhrases.length === 0) {
       console.error("No hay citas disponibles");
       return;
     }
-    //cuenta las frases que han sido usadas
-    let howManyUsed = await Phrase.countDocuments({ used: true });
+    //obten el número de la última frase
+    let howManyUsed = previousPhrase.number;
     //elimina los juegos que no se han llegado a empezar
     await deleteUnstartedGames(howManyUsed);
 
-
     howManyUsed++;
-    //Elige una frase al azar entre las no usadas
+    //Elige una frase al azar entre las no usadas comprobando que no se elijan dos frases seguidas de la misma película
     let isNotValidPhrase = true;
     let randomPhrase = null;
-    let randomIndex = 0
-    //comprueba que no se elijan dos frases seguidas de la misma película
     while (isNotValidPhrase) {
-       randomIndex = Math.floor(Math.random() * unusedPhrases.length);
-       randomPhrase = unusedPhrases[randomIndex];
-      const previousPhrase = await PhraseOfTheDay.findOne();
-      if (previousPhrase.movie!=randomPhrase.movie) {
+      const randomIndex = Math.floor(Math.random() * unusedPhrases.length);
+      randomPhrase = unusedPhrases[randomIndex];
+
+      if (previousPhrase.movie != randomPhrase.movie) {
         isNotValidPhrase = false;
-      } else {console.log("Frase de la misma película, eligiendo otra")}
+      } else {
+        console.log("Frase de la misma película, eligiendo otra");
+      }
     }
-    // const randomIndex = Math.floor(Math.random() * unusedPhrases.length);
-    // let randomPhrase = unusedPhrases[randomIndex];
 
     // Marca la frase elegida como usada y numérala en la base de datos
     await Phrase.updateOne(
@@ -42,16 +41,7 @@ const getPhrase = async () => {
       { $set: { used: true, number: howManyUsed } }
     );
     //los juegos del día anterior que se hayan empezado y no estén terminados se consideran perdidos
-    await Game.updateMany(
-      {
-        phraseNumber: { $lt: howManyUsed },
-        gameStatus: "playing",
-        triedWords: { $exists: true, $not: { $size: 0 } },
-      },
-      { $set: { gameStatus: "lose" } }
-    );
-    
-    
+    await updateLostGamesAndUsers(howManyUsed);
 
     randomPhrase.number = howManyUsed;
 
@@ -69,9 +59,67 @@ const getPhrase = async () => {
   }
 };
 
+const updateLostGamesAndUsers = async (previousPhraseNumber) => {
+  try {
+    // Paso 1: Filtrar las partidas que serán marcadas como "perdidas"
+    const gamesToUpdate = await Game.find(
+      {
+        phraseNumber: { $lt: previousPhraseNumber },
+        gameStatus: "playing",
+        triedWords: { $exists: true, $not: { $size: 0 } },
+      },
+      { phraseNumber: 1, userId: 1, _id: 1 } // Incluye los campos necesarios
+    );
+    // Si no hay partidas que actualizar, devolvemos directamente
+    if (gamesToUpdate.length === 0) {
+      console.log("No hay partidas para actualizar.");
+      return { updatedGamesCount: 0, updatedUsersCount: 0 };
+    }
+    // Paso 2: Actualizar esas partidas a "perdidas"
+    const gameIds = gamesToUpdate.map((game) => game._id);
+    const gameUpdateResult = await Game.updateMany(
+      { _id: { $in: gameIds } },
+      { $set: { gameStatus: "lose" } }
+    );
+
+    const updatedGamesCount = gameUpdateResult.modifiedCount;
+
+
+    // Paso 3: Agrupar los phraseNumbers por usuario
+    const userPhrasesMap = {};
+    gamesToUpdate.forEach((game) => {
+      if (!userPhrasesMap[game.userId]) {
+        userPhrasesMap[game.userId] = [];
+      }
+      userPhrasesMap[game.userId].push(game.phraseNumber);
+    });
+
+    // Paso 4: Actualizar la colección User
+    let updatedUsersCount = 0;
+    for (const [userId, phrasesLost] of Object.entries(userPhrasesMap)) {
+      const userUpdateResult = await User.updateOne(
+        { _id: userId },
+        { $addToSet: { phrasesLost: { $each: phrasesLost } } }
+      );
+
+      if (userUpdateResult.modifiedCount > 0) {
+        updatedUsersCount++;
+      }
+    }
+
+    console.log(
+      `Actualización completada: ${updatedGamesCount} partidas perdidas y ${updatedUsersCount} usuarios actualizados.`
+    );
+
+    return { updatedGamesCount, updatedUsersCount };
+  } catch (error) {
+    console.error("Error al actualizar los juegos y usuarios:", error);
+  }
+};
+
 const deleteUnstartedGames = async (previousPhraseNumber) => {
   try {
-   const result= await Game.deleteMany({
+    const result = await Game.deleteMany({
       gameStatus: "playing",
       currentTry: 0,
       phraseNumber: { $lte: previousPhraseNumber },

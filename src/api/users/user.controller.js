@@ -1,5 +1,6 @@
 /* eslint-disable no-undef */
 
+const Game = require("../game/game.model");
 const User = require("./user.model");
 
 const getUserData = async (req, res, next) => {
@@ -252,6 +253,44 @@ const updateDailyRanking = async () => {
     console.error("Error al actualizar el ranking:", error);
   }
 };
+
+const updateLostGames = async () => {
+  try {
+    // Agrupamos las frases perdidas por usuario directamente en MongoDB
+    const lostGamesByUser = await Game.aggregate([
+      {
+        $match: {
+          phraseNumber: { $lt: 77 },
+          gameStatus: "lose",
+        },
+      },
+      {
+        $group: {
+          _id: "$userId", // Agrupamos por el ID del usuario
+          phrases: { $addToSet: "$phraseNumber" }, // Recopilamos las frases únicas
+        },
+      },
+    ]);
+
+    let modifiedUsersCount = 0;
+
+    // Actualizamos los usuarios en batch
+    for (const { _id: userId, phrases } of lostGamesByUser) {
+      const result = await User.updateOne(
+        { _id: userId },
+        { $addToSet: { phrasesLost: { $each: phrases } } } // Agregar las frases únicas
+      );
+      if (result.modifiedCount > 0) {
+        modifiedUsersCount++;
+      }
+    }
+    console.log("Lost games updated for ", modifiedUsersCount, " users");
+  } catch (error) {
+    console.error("Error updating lost games", error); 
+    return (error);
+  }
+};
+updateLostGames();
 // updateDailyRanking();
 module.exports = {
   registerUser,
