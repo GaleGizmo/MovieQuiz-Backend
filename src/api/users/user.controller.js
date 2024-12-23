@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 
-const Game = require("../game/game.model");
+// const Game = require("../game/game.model");
 const User = require("./user.model");
 
 const getUserData = async (req, res, next) => {
@@ -15,6 +15,9 @@ const getUserData = async (req, res, next) => {
     }
     const userForFront = {
       _id: user._id,
+      points: user.points,
+      phrasesWon: user.phrasesWon,
+      phrasesLost: user.phrasesLost,
       dontShowInstructions: user.dontShowInstructions,
     };
     return res.status(200).json(userForFront);
@@ -76,7 +79,7 @@ const updateUser = async (req, res, next) => {
     return next(error);
   }
 };
-const buyPhraseDetails = async(req, res, next) => {
+const buyPhraseDetails = async (req, res, next) => {
   try {
     const { userId } = req.params;
     if (!userId) {
@@ -89,7 +92,7 @@ const buyPhraseDetails = async(req, res, next) => {
     if (user.points < 20) {
       return res.status(400).json({ message: "Puntos insuficientes." });
     }
-      const updatedUser = await User.findOneAndUpdate(
+    const updatedUser = await User.findOneAndUpdate(
       { _id: userId },
       { $inc: { points: -20 } },
       { new: true, runValidators: true }
@@ -102,7 +105,7 @@ const buyPhraseDetails = async(req, res, next) => {
   } catch (error) {
     return next(error);
   }
-}
+};
 const getUserPoints = async (req, res, next) => {
   try {
     const { userId } = req.params;
@@ -113,13 +116,11 @@ const getUserPoints = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: "Usuario no existe" });
     }
-    return res
-      .status(200)
-      .json({
-        points: user.points,
-        ranking: user.ranking,
-        trend: user.rankingTrend,
-      });
+    return res.status(200).json({
+      points: user.points,
+      ranking: user.ranking,
+      trend: user.rankingTrend,
+    });
   } catch (error) {
     return next(error);
   }
@@ -134,13 +135,27 @@ const getUserRanking = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: "Usuario no existe" });
     }
-    return res
-      .status(200)
-      .json({
-        
-        ranking: user.ranking,
-        trend: user.rankingTrend,
-      });
+    // Obtener las tres puntuaciones más altas únicas
+    const topScores = await User.aggregate([
+      { $group: { _id: "$points", count: { $sum: 1 } } }, // Agrupar por ranking
+      { $sort: { _id: -1 } }, 
+      { $limit: 3 }, // Tomar las tres puntuaciones más altas
+    ]).exec();
+    const uniqueTopRankings = topScores.map((score) => score._id);
+
+    const previousUserPoints = await User.findOne({
+      ranking: { $eq: user.ranking-1 },
+    });
+    const nextUserPoints = await User.findOne({
+      ranking: { $eq: user.ranking+1 },
+    });
+    return res.status(200).json({
+      podiumScores: uniqueTopRankings,
+      previousUser: previousUserPoints?.points || null,
+      nextUser: nextUserPoints?.points || null,
+      ranking: user.ranking,
+      trend: user.rankingTrend,
+    });
   } catch (error) {
     return next(error);
   }
@@ -214,22 +229,24 @@ const updateDailyRanking = async () => {
 
     // Crear el array de operaciones de escritura en bloque
     const bulkOperations = [];
-    let currentRank = 1;
-    let currentTrend = "";
+    let currentRank = 1; // Puesto en el ranking visible
+
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
-      let previousRank = user.ranking || null;
-      // Asignar el ranking actual; si es el primer usuario o si tiene menos puntos que el usuario anterior
+      const previousRank = user.ranking || null;
+
+      // Determinar si el usuario actual tiene la misma puntuación que el anterior
       if (i > 0 && user.points < users[i - 1].points) {
-        currentRank = i + 1;
+        currentRank++; // Incrementar el ranking solo si la puntuación es menor
       }
+
+      // Determinar la tendencia del ranking
+      let currentTrend = "";
       if (previousRank !== null) {
-        if (currentRank > user.ranking) {
+        if (currentRank > previousRank) {
           currentTrend = "↓";
-        } else if (currentRank < user.ranking) {
+        } else if (currentRank < previousRank) {
           currentTrend = "↑";
-        } else {
-          currentTrend = "";
         }
       }
 
@@ -254,43 +271,44 @@ const updateDailyRanking = async () => {
   }
 };
 
-const updateLostGames = async () => {
-  try {
-    // Agrupamos las frases perdidas por usuario directamente en MongoDB
-    const lostGamesByUser = await Game.aggregate([
-      {
-        $match: {
-          phraseNumber: { $lt: 77 },
-          gameStatus: "lose",
-        },
-      },
-      {
-        $group: {
-          _id: "$userId", // Agrupamos por el ID del usuario
-          phrases: { $addToSet: "$phraseNumber" }, // Recopilamos las frases únicas
-        },
-      },
-    ]);
 
-    let modifiedUsersCount = 0;
+// const updateLostGames = async () => {
+//   try {
+//     // Agrupamos las frases perdidas por usuario directamente en MongoDB
+//     const lostGamesByUser = await Game.aggregate([
+//       {
+//         $match: {
+//           phraseNumber: { $lt: 77 },
+//           gameStatus: "lose",
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: "$userId", // Agrupamos por el ID del usuario
+//           phrases: { $addToSet: "$phraseNumber" }, // Recopilamos las frases únicas
+//         },
+//       },
+//     ]);
 
-    // Actualizamos los usuarios en batch
-    for (const { _id: userId, phrases } of lostGamesByUser) {
-      const result = await User.updateOne(
-        { _id: userId },
-        { $addToSet: { phrasesLost: { $each: phrases } } } // Agregar las frases únicas
-      );
-      if (result.modifiedCount > 0) {
-        modifiedUsersCount++;
-      }
-    }
-    console.log("Lost games updated for ", modifiedUsersCount, " users");
-  } catch (error) {
-    console.error("Error updating lost games", error); 
-    return (error);
-  }
-};
-updateLostGames();
+//     let modifiedUsersCount = 0;
+
+//     // Actualizamos los usuarios en batch
+//     for (const { _id: userId, phrases } of lostGamesByUser) {
+//       const result = await User.updateOne(
+//         { _id: userId },
+//         { $addToSet: { phrasesLost: { $each: phrases } } } // Agregar las frases únicas
+//       );
+//       if (result.modifiedCount > 0) {
+//         modifiedUsersCount++;
+//       }
+//     }
+//     console.log("Lost games updated for ", modifiedUsersCount, " users");
+//   } catch (error) {
+//     console.error("Error updating lost games", error);
+//     return (error);
+//   }
+// };
+// updateLostGames();
 // updateDailyRanking();
 module.exports = {
   registerUser,
@@ -301,5 +319,5 @@ module.exports = {
   getUserRanking,
   notifyMe,
   updateDailyRanking,
-  buyPhraseDetails
+  buyPhraseDetails,
 };
