@@ -27,11 +27,17 @@ const getUserData = async (req, res, next) => {
 };
 const registerUser = async (req, res, next) => {
   try {
-    const user = new User();
+    const lowestRankingUser = await User.findOne({ points: 0 }).sort({ ranking: -1 });
+    const newUserRanking = lowestRankingUser ? lowestRankingUser.ranking : lowestRankingUser.ranking + 1;
+    const user = new User({
+      points: 0,
+      ranking: newUserRanking,
+    });
     await user.save();
     const userForFront = {
       _id: user._id,
       instructions: user.dontShowInstructions,
+      ranking: user.ranking
     };
 
     return res.status(201).json(userForFront);
