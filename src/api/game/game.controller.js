@@ -263,6 +263,9 @@ const useClue = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
+    if (game.phraseNumber===87){
+      return res.status(200).json({ unusable: "Pistas no disponibles" });
+    }
     const userPoints = user.points;
     let clueResult = {};
     let updatedGameClues = null;

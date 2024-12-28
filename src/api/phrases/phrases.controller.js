@@ -4,45 +4,54 @@ const Phrase = require("./phrases.model.js");
 const PhraseOfTheDay = require("./phraseoftheday.model.js");
 const Game = require("../game/game.model.js");
 const User = require("../users/user.model.js");
+const { isSpecialDate } = require("../../utils/isSpecialDate.js");
+
 
 // coge una frase al azar de las que no han sido usadas, la copia a FraseDelDia y la marca como usada
 const getPhrase = async () => {
   try {
     const previousPhrase = await PhraseOfTheDay.findOne();
-    // Buscar todas las frases que no han sido usadas
-    const unusedPhrases = await Phrase.find({ used: false });
-    if (unusedPhrases.length === 0) {
-      console.error("No hay citas disponibles");
-      return;
-    }
     //obten el número de la última frase
     let howManyUsed = previousPhrase.number;
-    //elimina los juegos que no se han llegado a empezar
-    await deleteUnstartedGames(howManyUsed);
-
-    howManyUsed++;
-    //Elige una frase al azar entre las no usadas comprobando que no se elijan dos frases seguidas de la misma película
-    let isNotValidPhrase = true;
     let randomPhrase = null;
-    while (isNotValidPhrase) {
-      const randomIndex = Math.floor(Math.random() * unusedPhrases.length);
-      randomPhrase = unusedPhrases[randomIndex];
-
-      if (previousPhrase.movie != randomPhrase.movie) {
-        isNotValidPhrase = false;
-      } else {
-        console.log("Frase de la misma película, eligiendo otra");
+    if (isSpecialDate()) {
+      randomPhrase = specialPhrase(howManyUsed);
+      await randomPhrase.save()
+    } else {
+      // Buscar todas las frases que no han sido usadas
+      const unusedPhrases = await Phrase.find({ used: false });
+      if (unusedPhrases.length === 0) {
+        console.error("No hay citas disponibles");
+        return;
       }
-    }
 
-    // Marca la frase elegida como usada y numérala en la base de datos
-    await Phrase.updateOne(
-      { _id: randomPhrase._id },
-      { $set: { used: true, number: howManyUsed } }
-    );
+      //elimina los juegos que no se han llegado a empezar
+      await deleteUnstartedGames(howManyUsed);
+
+     
+      //Elige una frase al azar entre las no usadas comprobando que no se elijan dos frases seguidas de la misma película
+      let isNotValidPhrase = true;
+
+      while (isNotValidPhrase) {
+        const randomIndex = Math.floor(Math.random() * unusedPhrases.length);
+        randomPhrase = unusedPhrases[randomIndex];
+
+        if (previousPhrase.movie != randomPhrase.movie) {
+          isNotValidPhrase = false;
+        } else {
+          console.log("Frase de la misma película, eligiendo otra");
+        }
+      }
+
+      // Marca la frase elegida como usada y numérala en la base de datos
+      await Phrase.updateOne(
+        { _id: randomPhrase._id },
+        { $set: { used: true, number: howManyUsed+1 } }
+      );
+    }
     //los juegos del día anterior que se hayan empezado y no estén terminados se consideran perdidos
     await updateLostGamesAndUsers(howManyUsed);
-
+    howManyUsed++;
     randomPhrase.number = howManyUsed;
 
     randomPhrase = randomPhrase.toObject();
@@ -64,7 +73,7 @@ const updateLostGamesAndUsers = async (previousPhraseNumber) => {
     // Paso 1: Filtrar las partidas que serán marcadas como "perdidas"
     const gamesToUpdate = await Game.find(
       {
-        phraseNumber: { $lt: previousPhraseNumber },
+        phraseNumber: { $lte: previousPhraseNumber },
         gameStatus: "playing",
         triedWords: { $exists: true, $not: { $size: 0 } },
       },
@@ -83,7 +92,6 @@ const updateLostGamesAndUsers = async (previousPhraseNumber) => {
     );
 
     const updatedGamesCount = gameUpdateResult.modifiedCount;
-
 
     // Paso 3: Agrupar los phraseNumbers por usuario
     const userPhrasesMap = {};
@@ -288,6 +296,23 @@ const getOldPhrasesStatus = async (req, res, next) => {
   }
 };
 
+const specialPhrase =(numberForPhrase)=>{
+  const phrase = new Phrase({
+    quote: "Es el alcalde el que quiere que sean los vecinos el alcalde",
+    movie: "¡Viva el vino!",
+    year: 2015,
+    director: "Perico Palotes",
+    who_said_it: {
+      actor: "Mariano Rajoy",
+      character: "M. Rajoy",
+      context: "¡Feliz Día de los Inocentes! Esta cita, obviamente, no pertenece a ninguna película, aunque su autor podría haber protagonizado muchas y de distintos géneros.",
+    },
+    poster: "https://res.cloudinary.com/dwv0trjwd/image/upload/v1735260277/MovieQuotes/Rajoy.jpg_vdxnjq.jpg",
+    used: true,
+    number: numberForPhrase+1,
+  });
+  return phrase
+}
 // getPhrase()
 
 module.exports = {
