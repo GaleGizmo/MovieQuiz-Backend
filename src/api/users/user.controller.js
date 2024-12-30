@@ -212,21 +212,6 @@ const notifyMe = async (req, res, next) => {
     return next(error);
   }
 };
-// const añadirCampoRankingTrend = async () => {
-//   try {
-//     const resultado = await User.updateMany(
-//       { rankingTrend: { $exists: false } },
-//       { $set: { rankingTrend: "" } }
-//     );
-//     await updateDailyRanking();
-//     console.log(
-//       `Campo 'ranking' añadido a ${resultado.modifiedCount} usuarios.`
-//     );
-//   } catch (error) {
-//     console.error("Error al añadir el campo 'ranking':", error);
-//   }
-// };
-// añadirCampoRankingTrend();
 
 const updateDailyRanking = async () => {
   try {
@@ -277,44 +262,22 @@ const updateDailyRanking = async () => {
   }
 };
 
-
-// const updateLostGames = async () => {
+// const añadirCampoRankingTrend = async () => {
 //   try {
-//     // Agrupamos las frases perdidas por usuario directamente en MongoDB
-//     const lostGamesByUser = await Game.aggregate([
-//       {
-//         $match: {
-//           phraseNumber: { $lt: 77 },
-//           gameStatus: "lose",
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: "$userId", // Agrupamos por el ID del usuario
-//           phrases: { $addToSet: "$phraseNumber" }, // Recopilamos las frases únicas
-//         },
-//       },
-//     ]);
-
-//     let modifiedUsersCount = 0;
-
-//     // Actualizamos los usuarios en batch
-//     for (const { _id: userId, phrases } of lostGamesByUser) {
-//       const result = await User.updateOne(
-//         { _id: userId },
-//         { $addToSet: { phrasesLost: { $each: phrases } } } // Agregar las frases únicas
-//       );
-//       if (result.modifiedCount > 0) {
-//         modifiedUsersCount++;
-//       }
-//     }
-//     console.log("Lost games updated for ", modifiedUsersCount, " users");
+//     const resultado = await User.updateMany(
+//       { rankingTrend: { $exists: false } },
+//       { $set: { rankingTrend: "" } }
+//     );
+//     await updateDailyRanking();
+//     console.log(
+//       `Campo 'ranking' añadido a ${resultado.modifiedCount} usuarios.`
+//     );
 //   } catch (error) {
-//     console.error("Error updating lost games", error);
-//     return (error);
+//     console.error("Error al añadir el campo 'ranking':", error);
 //   }
 // };
-// updateLostGames();
+// añadirCampoRankingTrend();
+
 // updateDailyRanking();
 module.exports = {
   registerUser,

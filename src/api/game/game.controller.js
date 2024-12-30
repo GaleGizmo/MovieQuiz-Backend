@@ -10,8 +10,8 @@ const checkEndGame = require("../../utils/checkEndGame.js");
 const { updatePoints } = require("../users/user.controller.js");
 const User = require("../users/user.model.js");
 const isLetter = require("../../utils/isLetter.js");
-const {isValidWord} = require("../../utils/isValidWord.js");
-
+const { isValidWord } = require("../../utils/isValidWord.js");
+const { ObjectId } = require("mongoose").Types;
 
 const startGame = async (req, res, next) => {
   try {
@@ -72,7 +72,7 @@ const updateGame = async (req, res, next) => {
       return res.status(404).json({ message: "Juego no encontrado" });
     }
     const { gameData } = req.body;
-    
+
     if (!gameData) {
       return res.status(400).json({ message: "Datos de juego son requeridos" });
     }
@@ -83,36 +83,35 @@ const updateGame = async (req, res, next) => {
         .status(400)
         .json({ message: "La palabra debe tener 5 letras" });
     }
-    if(triedWord) {
+    if (triedWord) {
       const checkWord = await isValidWord(triedWord);
       if (!checkWord.wordIsValid) {
-        
-        return res.status(200).json({ deleteFromTried:triedWord, message: checkWord.message });
+        return res
+          .status(200)
+          .json({ deleteFromTried: triedWord, message: checkWord.message });
       }
     }
     //Comprueba si hay que actualizar gameResultNotification o hasBoughtDetails
     const updateField = gameResultNotification
-    ? { gameResultNotification }
-    : hasBoughtDetails
-    ? { hasBoughtDetails }
-    : null;
+      ? { gameResultNotification }
+      : hasBoughtDetails
+      ? { hasBoughtDetails }
+      : null;
 
     if (updateField) {
-     
       const game = await Game.findByIdAndUpdate(
         gameId,
-        
-          updateField
-        ,
+
+        updateField,
         { new: true }
       );
       const gameDataResponse = {
         ...game.toObject(),
         newLetters: [], // Convierte el documento Mongoose a un objeto plano
       };
-     
+
       res.status(200).json(gameDataResponse);
-    }  else {
+    } else {
       let currentPhrasePlaying = await Phrase.findOne({
         number: currentGame.phraseNumber,
       });
@@ -263,7 +262,7 @@ const useClue = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
-    if (game.phraseNumber===87){
+    if (game.phraseNumber === 87) {
       return res.status(200).json({ unusable: "Pistas no disponibles" });
     }
     const userPoints = user.points;
@@ -468,6 +467,70 @@ const performMovieStaffClue = async (NumberOfPhrase, fieldToShow) => {
     };
   else return null;
 };
+
+const updateGameUserId = async (req, res, next) => {
+  try {
+    const { oldUserId, newUserId } = req.body;
+
+    // Validación de entrada
+    if (!oldUserId || !newUserId) {
+      return res.status(400).json({ message: "Faltan datos" });
+    }
+
+    if (!ObjectId.isValid(oldUserId) || !ObjectId.isValid(newUserId)) {
+      return res.status(400).json({ message: "IDs inválidos" });
+    }
+
+    // Actualización masiva
+    const result = await Game.updateMany(
+      { userId: oldUserId },
+      { $set: { userId: newUserId } }
+    );
+
+    const oldUser = await User.findById(oldUserId);
+    if (!oldUser) {
+      throw new Error("El usuario antiguo no existe");
+    }
+    const userData = oldUser.toObject(); // Convertir el documento a un objeto plano
+    delete userData._id; // Eliminar el campo _id para evitar conflictos
+
+   
+ // Preparar los datos para combinar los arrays específicos
+ const { points = 0, phrasesWon = [], phrasesLost = [], ...otherFields } = userData;
+
+ // Actualizar newUser combinando arrays y sumando puntos
+ await User.findByIdAndUpdate(
+   newUserId,
+   {
+     $set: otherFields, // Actualizar otros campos (excluyendo _id, points, phrasesWon, phrasesLost)
+     $inc: { points }, // Sumar los puntos
+     $addToSet: {
+       phrasesWon: { $each: phrasesWon }, // Combinar sin duplicados
+       phrasesLost: { $each: phrasesLost }, // Combinar sin duplicados
+     },
+   },
+   { new: true } // Retornar el documento actualizado
+ );
+
+    // Eliminar el usuario antiguo
+    await User.findByIdAndUpdate(
+      oldUserId,
+    {$set: {deprecatedUser:true}},
+    {new:true, strict: false}
+    );
+
+    console.log(`${result.modifiedCount} documentos actualizados`);
+    return res.status(200).json({
+      message: "Usuario actualizado correctamente",
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (err) {
+    console.error("Error al actualizar:", err);
+    next(err);
+  }
+};
+
+
 module.exports = {
   startGame,
   tryWord,
@@ -475,4 +538,5 @@ module.exports = {
   getActiveGame,
   getUserStats,
   useClue,
+  updateGameUserId,
 };
