@@ -88,8 +88,8 @@ const setCluesPrice = async (userId, phraseToStartNumber) => {
   if (phraseToStartNumber < 96) {
     cluesPrices.actor = 10;
     cluesPrices.director = 10;
-    cluesPrices.letter = 20;
-    cluesPrices.lettersRight = 30;
+    cluesPrices.letter = 30;
+    cluesPrices.lettersRight = 20;
   }
   const todayDate = new Date();
 
