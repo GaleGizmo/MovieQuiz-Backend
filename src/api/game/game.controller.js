@@ -98,6 +98,7 @@ const setCluesPrice = async (userId, phraseToStartNumber) => {
   if (
     todayDate.getDate() === 6 &&
     todayDate.getMonth() === 0 &&
+    todayDate.getHours()>=7 &&
     !phraseToStartNumber
   ) {
     cluesPrices.actor = 0;

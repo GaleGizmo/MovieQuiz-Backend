@@ -276,26 +276,26 @@ const updateDailyRanking = async () => {
   }
 };
 
-const añadirCampos = async () => {
-  try {
-    const resultado = await User.updateMany(
-      {},
-      {
-        $set: {
-          playingStrike: 0,
-          winningStrike: 0,
-          hasPlayingStrikeBonus: false,
-          hasWinningStrikeBonus: false,
-        },
-      }
-    );
+// const añadirCampos = async () => {
+//   try {
+//     const resultado = await User.updateMany(
+//       {},
+//       {
+//         $set: {
+//           playingStrike: 0,
+//           winningStrike: 0,
+//           hasPlayingStrikeBonus: false,
+//           hasWinningStrikeBonus: false,
+//         },
+//       }
+//     );
 
-    console.log(`Campos añadidos a ${resultado.modifiedCount} usuarios.`);
-  } catch (error) {
-    console.error("Error al añadir el campo 'ranking':", error);
-  }
-};
-añadirCampos();
+//     console.log(`Campos añadidos a ${resultado.modifiedCount} usuarios.`);
+//   } catch (error) {
+//     console.error("Error al añadir el campo 'ranking':", error);
+//   }
+// };
+// añadirCampos();
 
 // updateDailyRanking();
 
