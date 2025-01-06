@@ -7,11 +7,11 @@ const removeAccents = require("../../utils/removeAccents.js");
 const processPhraseToShow = require("../../utils/processPhraseToShow.js");
 const checkLettersFromWord = require("../../utils/checkLettersFromWord.js");
 const checkEndGame = require("../../utils/checkEndGame.js");
-const { updatePoints } = require("../users/user.controller.js");
 const User = require("../users/user.model.js");
 const isLetter = require("../../utils/isLetter.js");
 const { isValidWord } = require("../../utils/isValidWord.js");
 const { ObjectId } = require("mongoose").Types;
+const { updatePoints } = require("../../utils/updatePoints.js");
 
 const startGame = async (req, res, next) => {
   try {
@@ -20,8 +20,10 @@ const startGame = async (req, res, next) => {
       return res.status(400).json({ message: "UserId es requerido." });
     }
     let currentPhraseToPlay = "";
+    let isDailyPhrase = true;
     if (phraseToPlay) {
       currentPhraseToPlay = await Phrase.findOne({ number: phraseToPlay });
+      isDailyPhrase = false;
     } else {
       currentPhraseToPlay = await PhraseOfTheDay.findOne();
     }
@@ -36,10 +38,12 @@ const startGame = async (req, res, next) => {
     } else {
       const plainPhrase = removeAccents(currentPhraseToPlay.quote);
       const hiddenPhrase = processPhraseToShow(plainPhrase, []);
+      const cluesPrices = await setCluesPrice(userId, phraseToPlay);
       let game = new Game({
         userId: userId,
         phrase: hiddenPhrase,
         phraseNumber: currentPhraseToPlay.number,
+        isDailyPhrase: isDailyPhrase,
         maximumTries: maxTries,
         movieDirector: "",
         movieActor: "",
@@ -49,6 +53,24 @@ const startGame = async (req, res, next) => {
         gameResultNotification: false,
         currentTry: 0,
         gameStatus: "playing",
+        clues: {
+          actor: {
+            price: cluesPrices.actor,
+            status: true,
+          },
+          director: {
+            price: cluesPrices.director,
+            status: true,
+          },
+          letter: {
+            price: cluesPrices.letter,
+            status: true,
+          },
+          lettersRight: {
+            price: cluesPrices.lettersRight,
+            status: true,
+          },
+        },
       });
 
       await game.save();
@@ -60,6 +82,45 @@ const startGame = async (req, res, next) => {
   }
 };
 
+const setCluesPrice = async (userId, phraseToStartNumber) => {
+  const cluesPrices = { actor: 5, director: 5, letter: 20, lettersRight: 10 };
+  //Si es frase anterior al cambio de precio, mantén precio anterior
+  if (phraseToStartNumber < 96) {
+    cluesPrices.actor = 10;
+    cluesPrices.director = 10;
+    cluesPrices.letter = 20;
+    cluesPrices.lettersRight = 30;
+  }
+  const todayDate = new Date();
+
+  //logica para calcular los precios de las pistas
+  //El dia de navidad pistas gratis
+  if (
+    todayDate.getDate() === 6 &&
+    todayDate.getMonth() === 0 &&
+    !phraseToStartNumber
+  ) {
+    cluesPrices.actor = 0;
+    cluesPrices.director = 0;
+    cluesPrices.letter = 0;
+    cluesPrices.lettersRight = 0;
+  } else {
+    //comprueba si tiene racha de partidas/partidas ganadas
+    const user = await User.findOne({ _id: userId });
+
+    if (user.hasPlayingStrikeBonus) {
+      cluesPrices.actor = 0;
+      cluesPrices.director = 0;
+    }
+    if (user.hasWinningStrikeBonus) {
+      cluesPrices.letter = 0;
+      cluesPrices.lettersRight = 0;
+    }
+  }
+
+  console.log("Precios pistas: ", cluesPrices);
+  return cluesPrices;
+};
 const updateGame = async (req, res, next) => {
   try {
     const { gameId } = req.params;
@@ -494,29 +555,33 @@ const updateGameUserId = async (req, res, next) => {
     const userData = oldUser.toObject(); // Convertir el documento a un objeto plano
     delete userData._id; // Eliminar el campo _id para evitar conflictos
 
-   
- // Preparar los datos para combinar los arrays específicos
- const { points = 0, phrasesWon = [], phrasesLost = [], ...otherFields } = userData;
+    // Preparar los datos para combinar los arrays específicos
+    const {
+      points = 0,
+      phrasesWon = [],
+      phrasesLost = [],
+      ...otherFields
+    } = userData;
 
- // Actualizar newUser combinando arrays y sumando puntos
- await User.findByIdAndUpdate(
-   newUserId,
-   {
-     $set: otherFields, // Actualizar otros campos (excluyendo _id, points, phrasesWon, phrasesLost)
-     $inc: { points }, // Sumar los puntos
-     $addToSet: {
-       phrasesWon: { $each: phrasesWon }, // Combinar sin duplicados
-       phrasesLost: { $each: phrasesLost }, // Combinar sin duplicados
-     },
-   },
-   { new: true } // Retornar el documento actualizado
- );
+    // Actualizar newUser combinando arrays y sumando puntos
+    await User.findByIdAndUpdate(
+      newUserId,
+      {
+        $set: otherFields, // Actualizar otros campos (excluyendo _id, points, phrasesWon, phrasesLost)
+        $inc: { points }, // Sumar los puntos
+        $addToSet: {
+          phrasesWon: { $each: phrasesWon }, // Combinar sin duplicados
+          phrasesLost: { $each: phrasesLost }, // Combinar sin duplicados
+        },
+      },
+      { new: true } // Retornar el documento actualizado
+    );
 
-    // Eliminar el usuario antiguo
+    // MArcar el usuario antiguo como deprecado
     await User.findByIdAndUpdate(
       oldUserId,
-    {$set: {deprecatedUser:true}},
-    {new:true, strict: false}
+      { $set: { deprecatedUser: true } },
+      { new: true, strict: false }
     );
 
     console.log(`${result.modifiedCount} documentos actualizados`);
@@ -530,6 +595,24 @@ const updateGameUserId = async (req, res, next) => {
   }
 };
 
+const checkGameForStrike = async (gameId) => {
+  const checkResult = { playingStrike: false, winningStrike: false };
+  try {
+    const game = await Game.findById(gameId);
+    if (!game) {
+      throw new Error("Partida no encontrada");
+    }
+    if (game.isDailyPhrase) {
+      checkResult.playingStrike = true;
+    }
+    if (game.gameStatus === "win") {
+      checkResult.winningStrike = true;
+    }
+    return checkResult;
+  } catch (err) {
+    throw new Error("Error al verificar la partida: " + err.message);
+  }
+};
 
 module.exports = {
   startGame,
@@ -539,4 +622,5 @@ module.exports = {
   getUserStats,
   useClue,
   updateGameUserId,
+  checkGameForStrike,
 };

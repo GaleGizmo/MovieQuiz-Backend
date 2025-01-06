@@ -11,6 +11,11 @@ const userSchema = mongoose.Schema(
     dontShowInstructions:{type: Boolean, default:false},
     phrasesWon: [{type: Number}],
     phrasesLost: [{type: Number}],
+    playingStrike: {type: Number, default: 0},
+    winningStrike: {type: Number, default: 0},
+    hasPlayingStrikeBonus: {type: Boolean, default: false},
+    hasWinningStrikeBonus: {type: Boolean, default: false},
+   
   },
 
   {

@@ -11,6 +11,7 @@ const gameSchema = new Schema(
     lettersFound: [String],
     lettersFailed: [String],
     earnedPoints: Number,
+    isDailyPhrase: Boolean,
     clues: {
       actor: {
         status: { type: Boolean, default: true },

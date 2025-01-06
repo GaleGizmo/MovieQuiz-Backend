@@ -298,16 +298,17 @@ const getOldPhrasesStatus = async (req, res, next) => {
 
 const specialPhrase =(numberForPhrase)=>{
   const phrase = new Phrase({
-    quote: "Es el alcalde el que quiere que sean los vecinos el alcalde",
-    movie: "¡Viva el vino!",
-    year: 2015,
-    director: "Perico Palotes",
+    quote: 'Yo digo que eres el mesías, y de eso entiendo porque he seguido a varios',
+    movie: 'La vida de Brian',
+    year: 1971,
+    director: 'Terry Jones',
+    original: 'I say you are Lord, and I should know. I\'ve followed a few',
     who_said_it: {
-      actor: "Mariano Rajoy",
-      character: "M. Rajoy",
-      context: "¡Feliz Día de los Inocentes! Esta cita, obviamente, no pertenece a ninguna película, aunque su autor podría haber protagonizado muchas y de distintos géneros.",
+        actor: 'John Cleese',
+        character: 'Arthur',
+        context: 'Los seguidores de Brian no se dejan convencer por su negativa a que lo consideren el Mesías.'
     },
-    poster: "https://res.cloudinary.com/dwv0trjwd/image/upload/v1735260277/MovieQuotes/Rajoy.jpg_vdxnjq.jpg",
+    poster: 'https://res.cloudinary.com/dwv0trjwd/image/upload/v1720544074/MovieQuotes/monty_python_s_life_of_brian-402192024-mmed_lcnur7.jpg',
     used: true,
     number: numberForPhrase+1,
   });
