@@ -6,7 +6,7 @@ const { registerUser,  getUserPoints, updateUser, getUserData, getUserRanking, b
 
 userRoutes.get('/getuser/:userId', getUserData)
 userRoutes.post('/register',registerUser);
-userRoutes.patch('/updateuser/:userId/:gameId', updateUser);
+userRoutes.patch('/updateuser/:userId/:gameId?', updateUser);
 userRoutes.get('/getpoints/:userId', getUserPoints);
 userRoutes.get('/getranking/:userId', getUserRanking)
 // userRoutes.post("/notifyme", notifyMe)

@@ -85,27 +85,27 @@ const startGame = async (req, res, next) => {
 const setCluesPrice = async (userId, phraseToStartNumber) => {
   const cluesPrices = { actor: 5, director: 5, letter: 20, lettersRight: 10 };
   //Si es frase anterior al cambio de precio, mantén precio anterior
-  if (phraseToStartNumber < 96) {
+  if (phraseToStartNumber>0 && phraseToStartNumber < 96) {
     cluesPrices.actor = 10;
     cluesPrices.director = 10;
     cluesPrices.letter = 30;
     cluesPrices.lettersRight = 20;
   }
-  const todayDate = new Date();
+  // const todayDate = new Date();
 
   //logica para calcular los precios de las pistas
   //El dia de navidad pistas gratis
-  if (
-    todayDate.getDate() === 6 &&
-    todayDate.getMonth() === 0 &&
-    todayDate.getHours()>=7 &&
-    !phraseToStartNumber
-  ) {
-    cluesPrices.actor = 0;
-    cluesPrices.director = 0;
-    cluesPrices.letter = 0;
-    cluesPrices.lettersRight = 0;
-  } else {
+  // if (
+  //   todayDate.getDate() === 6 &&
+  //   todayDate.getMonth() === 0 &&
+  //   todayDate.getHours()>=7 &&
+  //   !phraseToStartNumber
+  // ) {
+  //   cluesPrices.actor = 0;
+  //   cluesPrices.director = 0;
+  //   cluesPrices.letter = 0;
+  //   cluesPrices.lettersRight = 0;
+  // } else {
     //comprueba si tiene racha de partidas/partidas ganadas
     const user = await User.findOne({ _id: userId });
 
@@ -117,7 +117,7 @@ const setCluesPrice = async (userId, phraseToStartNumber) => {
       cluesPrices.letter = 0;
       cluesPrices.lettersRight = 0;
     }
-  }
+  // }
 
   console.log("Precios pistas: ", cluesPrices);
   return cluesPrices;

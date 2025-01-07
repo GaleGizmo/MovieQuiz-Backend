@@ -71,10 +71,13 @@ const updateUser = async (req, res, next) => {
 
     // Inicializamos el objeto de actualización
     const update = { ...userData }; // Copiamos los demás campos de userData
+    console.log("update recibido:", update)
+    
 
     if (gameId) {
+    
       const addToStrike = await checkGameForStrike(gameId);
-      console.log("addToStrike", addToStrike);
+     
       const newPlayingStrikeAndBonus = calculateNewStrike(
         userStrike.playingStrike,
         userStrike.hasPlayingStrikeBonus,
