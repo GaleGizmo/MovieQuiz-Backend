@@ -302,11 +302,34 @@ const updateDailyRanking = async () => {
 
 // updateDailyRanking();
 
+const updateUsersField=async(req,res,next)=>{
+  try {
+    const {keyword}=req.params;
+    const {field,value}=req.body;
+    if (!keyword) {
+      return res.status(400).json({ message: "Keyword es requerido." });
+    }
+    if (keyword!="Est@sb0rr@ch0M@nu31") {
+      return res.status(400).json({ message: "Keyword incorrecto." });
+    }
+    const resultado = await User.updateMany(
+      {},
+      {
+        $set: {
+          [field]: value,
+        },
+      }
+    );
+    return res.status(200).json({updatedCount: resultado.modifiedCount});
+} catch (error) {
+  return next(error);
+}
+}
 module.exports = {
   registerUser,
   getUserData,
   updateUser,
-  
+  updateUsersField,
   getUserPoints,
   getUserRanking,
   
