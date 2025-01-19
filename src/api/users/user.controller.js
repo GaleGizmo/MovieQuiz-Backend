@@ -15,11 +15,14 @@ const getUserData = async (req, res, next) => {
       return res.status(404).json({ message: "Usuario no existe" });
     }
     const userForFront = {
-      _id: user._id,
+      id: user._id,
       points: user.points,
       phrasesWon: user.phrasesWon,
       phrasesLost: user.phrasesLost,
       dontShowInstructions: user.dontShowInstructions,
+      hasPlayingStrikeBonus: user.hasPlayingStrikeBonus,
+      hasWinningStrikeBonus: user.hasWinningStrikeBonus,
+      
     };
     return res.status(200).json(userForFront);
   } catch (error) {
@@ -40,7 +43,7 @@ const registerUser = async (req, res, next) => {
     });
     await user.save();
     const userForFront = {
-      _id: user._id,
+      id: user._id,
       instructions: user.dontShowInstructions,
       ranking: user.ranking,
     };
@@ -64,30 +67,35 @@ const updateUser = async (req, res, next) => {
       userId,
       "playingStrike winningStrike hasPlayingStrikeBonus hasWinningStrikeBonus"
     );
-    console.log("userStrike", userStrike)
+    console.log("userStrike", userStrike);
     if (!userStrike._id) {
       return res.status(404).json({ message: "Usuario no existe" });
     }
 
     // Inicializamos el objeto de actualización
     const update = { ...userData }; // Copiamos los demás campos de userData
-    console.log("update recibido:", update)
-    
+    console.log("update recibido:", update);
 
     if (gameId) {
-    
       const addToStrike = await checkGameForStrike(gameId);
-     
-      const newPlayingStrikeAndBonus = calculateNewStrike(
-        userStrike.playingStrike,
-        userStrike.hasPlayingStrikeBonus,
-        addToStrike.playingStrike
-      );
-      const newWinningStrikeAndBonus = calculateNewStrike(
-        userStrike.winningStrike,
-        userStrike.hasWinningStrikeBonus,
-        addToStrike.winningStrike
-      );
+      let newPlayingStrikeAndBonus = {
+        strike: userStrike.playingStrike,
+        bonus: userStrike.hasPlayingStrikeBonus,
+      };
+      if (addToStrike.playingStrike)
+        newPlayingStrikeAndBonus = calculateNewStrike(
+          userStrike.playingStrike,
+          userStrike.hasPlayingStrikeBonus
+        );
+      let newWinningStrikeAndBonus = {
+        strike: userStrike.winningStrike,
+        bonus: userStrike.hasWinningStrikeBonus,
+      };
+      if (addToStrike.winningStrike)
+        newWinningStrikeAndBonus = calculateNewStrike(
+          userStrike.winningStrike,
+          userStrike.hasWinningStrikeBonus
+        );
       update.playingStrike = newPlayingStrikeAndBonus.strike;
       update.hasPlayingStrikeBonus = newPlayingStrikeAndBonus.bonus;
       update.winningStrike = newWinningStrikeAndBonus.strike;
@@ -122,10 +130,10 @@ const updateUser = async (req, res, next) => {
   }
 };
 
-const calculateNewStrike = (strike, hasBonus, addOne) => {
-  const newStrike = addOne && !hasBonus ? strike + 1 : strike;
-  let newHasBonus;
-  if (hasBonus || newStrike === 10) newHasBonus = true;
+const calculateNewStrike = (strike, hasBonus) => {
+  let newStrike = !hasBonus ? strike + 1 : 0;
+  let newHasBonus=false;
+  if (!hasBonus && newStrike === 10) newHasBonus = true;
   return { strike: newStrike, bonus: newHasBonus };
 };
 
@@ -210,7 +218,6 @@ const getUserRanking = async (req, res, next) => {
     return next(error);
   }
 };
-
 
 // const notifyMe = async (req, res, next) => {
 //   try {
@@ -302,14 +309,14 @@ const updateDailyRanking = async () => {
 
 // updateDailyRanking();
 
-const updateUsersField=async(req,res,next)=>{
+const updateUsersField = async (req, res, next) => {
   try {
-    const {keyword}=req.params;
-    const {field,value}=req.body;
+    const { keyword } = req.params;
+    const { field, value } = req.body;
     if (!keyword) {
       return res.status(400).json({ message: "Keyword es requerido." });
     }
-    if (keyword!="Est@sb0rr@ch0M@nu31") {
+    if (keyword != "Est@sb0rr@ch0M@nu31") {
       return res.status(400).json({ message: "Keyword incorrecto." });
     }
     const resultado = await User.updateMany(
@@ -320,11 +327,11 @@ const updateUsersField=async(req,res,next)=>{
         },
       }
     );
-    return res.status(200).json({updatedCount: resultado.modifiedCount});
-} catch (error) {
-  return next(error);
-}
-}
+    return res.status(200).json({ updatedCount: resultado.modifiedCount });
+  } catch (error) {
+    return next(error);
+  }
+};
 module.exports = {
   registerUser,
   getUserData,
@@ -332,7 +339,7 @@ module.exports = {
   updateUsersField,
   getUserPoints,
   getUserRanking,
-  
+
   updateDailyRanking,
   buyPhraseDetails,
 };

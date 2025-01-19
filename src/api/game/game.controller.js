@@ -85,7 +85,7 @@ const startGame = async (req, res, next) => {
 const setCluesPrice = async (userId, phraseToStartNumber) => {
   const cluesPrices = { actor: 5, director: 5, letter: 20, lettersRight: 10 };
   //Si es frase anterior al cambio de precio, mantén precio anterior
-  if (phraseToStartNumber>0 && phraseToStartNumber < 96) {
+  if (phraseToStartNumber > 0 && phraseToStartNumber < 96) {
     cluesPrices.actor = 10;
     cluesPrices.director = 10;
     cluesPrices.letter = 30;
@@ -106,17 +106,18 @@ const setCluesPrice = async (userId, phraseToStartNumber) => {
   //   cluesPrices.letter = 0;
   //   cluesPrices.lettersRight = 0;
   // } else {
-    //comprueba si tiene racha de partidas/partidas ganadas
-    const user = await User.findOne({ _id: userId });
+  //comprueba si tiene racha de partidas/partidas ganadas
+  const user = await User.findOne({ _id: userId });
 
-    if (user.hasPlayingStrikeBonus) {
-      cluesPrices.actor = 0;
-      cluesPrices.director = 0;
-    }
+  if (user.hasPlayingStrikeBonus) {
+    cluesPrices.actor = 0;
+    cluesPrices.director = 0;
     if (user.hasWinningStrikeBonus) {
       cluesPrices.letter = 0;
       cluesPrices.lettersRight = 0;
     }
+  }
+  
   // }
 
   console.log("Precios pistas: ", cluesPrices);
@@ -601,17 +602,22 @@ const checkGameForStrike = async (gameId) => {
   try {
     const game = await Game.findById(gameId);
     if (!game) {
-      throw new Error("Partida no encontrada");
+      return checkResult;
     }
+    // const previousGame = await Game.findOne(
+
+    // )
     if (game.isDailyPhrase) {
       checkResult.playingStrike = true;
-    }
-    if (game.gameStatus === "win") {
-      checkResult.winningStrike = true;
-    }
+      if (game.gameStatus === "win") {
+        checkResult.winningStrike = true;
+      }
+    } 
+    
     return checkResult;
   } catch (err) {
-    throw new Error("Error al verificar la partida: " + err.message);
+    console.error("Error al verificar la partida:", err.message);
+    throw new Error("Error al verificar la partida.");
   }
 };
 
