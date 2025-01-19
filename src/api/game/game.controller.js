@@ -117,7 +117,7 @@ const setCluesPrice = async (userId, phraseToStartNumber) => {
       cluesPrices.lettersRight = 0;
     }
   }
-  
+
   // }
 
   console.log("Precios pistas: ", cluesPrices);
@@ -598,22 +598,29 @@ const updateGameUserId = async (req, res, next) => {
 };
 
 const checkGameForStrike = async (gameId) => {
-  const checkResult = { playingStrike: false, winningStrike: false };
+  const checkResult = { playingStrike: false, winningStrike: false, resetStrike: false };
   try {
     const game = await Game.findById(gameId);
     if (!game) {
       return checkResult;
     }
-    // const previousGame = await Game.findOne(
-
-    // )
+    //Comprueba si ha jugado la partida del dia anterior, si no es así, resetea la racha
+    const previousGame = await Game.findOne({
+      userId: game.userId,
+      phraseNumber: game.phraseNumber - 1,
+      isDailyPhrase: true,
+    });
+    if (!previousGame) {
+      checkResult.resetStrike = true;
+     
+    }
     if (game.isDailyPhrase) {
       checkResult.playingStrike = true;
       if (game.gameStatus === "win") {
         checkResult.winningStrike = true;
       }
-    } 
-    
+    }
+
     return checkResult;
   } catch (err) {
     console.error("Error al verificar la partida:", err.message);

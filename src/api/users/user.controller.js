@@ -22,7 +22,6 @@ const getUserData = async (req, res, next) => {
       dontShowInstructions: user.dontShowInstructions,
       hasPlayingStrikeBonus: user.hasPlayingStrikeBonus,
       hasWinningStrikeBonus: user.hasWinningStrikeBonus,
-      
     };
     return res.status(200).json(userForFront);
   } catch (error) {
@@ -77,29 +76,37 @@ const updateUser = async (req, res, next) => {
     console.log("update recibido:", update);
 
     if (gameId) {
+      //Comprueba si hay que actualizar las rachas o los bonus
       const addToStrike = await checkGameForStrike(gameId);
-      let newPlayingStrikeAndBonus = {
-        strike: userStrike.playingStrike,
-        bonus: userStrike.hasPlayingStrikeBonus,
-      };
-      if (addToStrike.playingStrike)
-        newPlayingStrikeAndBonus = calculateNewStrike(
-          userStrike.playingStrike,
-          userStrike.hasPlayingStrikeBonus
-        );
-      let newWinningStrikeAndBonus = {
-        strike: userStrike.winningStrike,
-        bonus: userStrike.hasWinningStrikeBonus,
-      };
-      if (addToStrike.winningStrike)
-        newWinningStrikeAndBonus = calculateNewStrike(
-          userStrike.winningStrike,
-          userStrike.hasWinningStrikeBonus
-        );
-      update.playingStrike = newPlayingStrikeAndBonus.strike;
-      update.hasPlayingStrikeBonus = newPlayingStrikeAndBonus.bonus;
-      update.winningStrike = newWinningStrikeAndBonus.strike;
-      update.hasWinningStrikeBonus = newWinningStrikeAndBonus.bonus;
+      if (addToStrike.resetStrike) {
+        update.playingStrike = addToStrike.playingStrike ? 1 : 0;
+        update.hasPlayingStrikeBonus = false;
+        update.winningStrike = addToStrike.winningStrike ? 1 : 0;
+        update.hasWinningStrikeBonus = false;
+      } else {
+        let newPlayingStrikeAndBonus = {
+          strike: userStrike.playingStrike,
+          bonus: userStrike.hasPlayingStrikeBonus,
+        };
+        if (addToStrike.playingStrike)
+          newPlayingStrikeAndBonus = calculateNewStrike(
+            userStrike.playingStrike,
+            userStrike.hasPlayingStrikeBonus
+          );
+        let newWinningStrikeAndBonus = {
+          strike: userStrike.winningStrike,
+          bonus: userStrike.hasWinningStrikeBonus,
+        };
+        if (addToStrike.winningStrike)
+          newWinningStrikeAndBonus = calculateNewStrike(
+            userStrike.winningStrike,
+            userStrike.hasWinningStrikeBonus
+          );
+        update.playingStrike = newPlayingStrikeAndBonus.strike;
+        update.hasPlayingStrikeBonus = newPlayingStrikeAndBonus.bonus;
+        update.winningStrike = newWinningStrikeAndBonus.strike;
+        update.hasWinningStrikeBonus = newWinningStrikeAndBonus.bonus;
+      }
     }
 
     // Si está presente phrasesWon, lo añadimos al array correspondiente usando $push
@@ -132,7 +139,7 @@ const updateUser = async (req, res, next) => {
 
 const calculateNewStrike = (strike, hasBonus) => {
   let newStrike = !hasBonus ? strike + 1 : 0;
-  let newHasBonus=false;
+  let newHasBonus = false;
   if (!hasBonus && newStrike === 10) newHasBonus = true;
   return { strike: newStrike, bonus: newHasBonus };
 };
