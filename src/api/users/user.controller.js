@@ -20,6 +20,8 @@ const getUserData = async (req, res, next) => {
       phrasesWon: user.phrasesWon,
       phrasesLost: user.phrasesLost,
       dontShowInstructions: user.dontShowInstructions,
+      playingStrike: user.playingStrike,
+      winningStrike: user.winningStrike,
       hasPlayingStrikeBonus: user.hasPlayingStrikeBonus,
       hasWinningStrikeBonus: user.hasWinningStrikeBonus,
     };
@@ -67,7 +69,7 @@ const updateUser = async (req, res, next) => {
       "playingStrike winningStrike hasPlayingStrikeBonus hasWinningStrikeBonus"
     );
     console.log("userStrike", userStrike);
-    if (!userStrike._id) {
+    if (!userStrike) {
       return res.status(404).json({ message: "Usuario no existe" });
     }
 
@@ -76,36 +78,30 @@ const updateUser = async (req, res, next) => {
     console.log("update recibido:", update);
 
     if (gameId) {
-      //Comprueba si hay que actualizar las rachas o los bonus
-      const addToStrike = await checkGameForStrike(gameId);
+      //Comprueba si hay que actualizar las rachas de partidas y victorias
+      const isFirstDayOfStrike = userStrike.playingStrike === 0 ? true : false;
+      const addToStrike = await checkGameForStrike(gameId, isFirstDayOfStrike);
       if (addToStrike.resetStrike) {
         update.playingStrike = addToStrike.playingStrike ? 1 : 0;
         update.hasPlayingStrikeBonus = false;
         update.winningStrike = addToStrike.winningStrike ? 1 : 0;
         update.hasWinningStrikeBonus = false;
       } else {
-        let newPlayingStrikeAndBonus = {
-          strike: userStrike.playingStrike,
-          bonus: userStrike.hasPlayingStrikeBonus,
-        };
-        if (addToStrike.playingStrike)
-          newPlayingStrikeAndBonus = calculateNewStrike(
-            userStrike.playingStrike,
-            userStrike.hasPlayingStrikeBonus
-          );
-        let newWinningStrikeAndBonus = {
-          strike: userStrike.winningStrike,
-          bonus: userStrike.hasWinningStrikeBonus,
-        };
-        if (addToStrike.winningStrike)
-          newWinningStrikeAndBonus = calculateNewStrike(
-            userStrike.winningStrike,
-            userStrike.hasWinningStrikeBonus
-          );
-        update.playingStrike = newPlayingStrikeAndBonus.strike;
-        update.hasPlayingStrikeBonus = newPlayingStrikeAndBonus.bonus;
-        update.winningStrike = newWinningStrikeAndBonus.strike;
-        update.hasWinningStrikeBonus = newWinningStrikeAndBonus.bonus;
+        let newPlayingStrike = userStrike.playingStrike;
+        let newWinningStrike = userStrike.winningStrike;
+
+        if (addToStrike.playingStrike) {
+          newPlayingStrike = newPlayingStrike + 1;
+
+          if (!addToStrike.winningStrike && addToStrike.resetWinningStrike) {
+            newWinningStrike = 0;
+          } else if (addToStrike.winningStrike) {
+            newWinningStrike = newWinningStrike + 1;
+          }
+        }
+        update.playingStrike = newPlayingStrike;
+
+        update.winningStrike = newWinningStrike;
       }
     }
 
@@ -127,23 +123,30 @@ const updateUser = async (req, res, next) => {
       runValidators: true,
     });
 
-    if (!user) {
-      return res.status(404).json({ message: "Usuario no existe" });
-    }
+    const userForFront = {
+      dontShowInstructions: user.dontShowInstructions,
+      playingStrike: user.playingStrike,
+      winningStrike: user.winningStrike,
+      hasPlayingStrikeBonus: user.hasPlayingStrikeBonus,
+      hasWinningStrikeBonus: user.hasWinningStrikeBonus,
+    };
 
-    return res.status(200).json(user);
+    return res.status(200).json(userForFront);
   } catch (error) {
     return next(error);
   }
 };
 
-const calculateNewStrike = (strike, hasBonus) => {
-  let newStrike = !hasBonus ? strike + 1 : 0;
-  let newHasBonus = false;
-  if (!hasBonus && newStrike === 10) newHasBonus = true;
-  return { strike: newStrike, bonus: newHasBonus };
-};
+// const calculateNewStrike = (strike, hasBonus) => {
+//   let newStrike = !hasBonus ? strike + 1 : 1;
+//   let newHasBonus = false;
+//   if (!hasBonus && newStrike === 10) {
+//     newHasBonus = true;
+//   }
+//   return { strike: newStrike, bonus: newHasBonus };
+// };
 
+//Comprar info de la frase
 const buyPhraseDetails = async (req, res, next) => {
   try {
     const { userId } = req.params;
@@ -159,7 +162,7 @@ const buyPhraseDetails = async (req, res, next) => {
     }
     const updatedUser = await User.findOneAndUpdate(
       { _id: userId },
-      { $inc: { points: -20 } },
+      { $inc: { points: -5 } },
       { new: true, runValidators: true }
     );
 
@@ -171,6 +174,7 @@ const buyPhraseDetails = async (req, res, next) => {
     return next(error);
   }
 };
+
 const getUserPoints = async (req, res, next) => {
   try {
     const { userId } = req.params;
@@ -190,6 +194,7 @@ const getUserPoints = async (req, res, next) => {
     return next(error);
   }
 };
+
 const getUserRanking = async (req, res, next) => {
   try {
     const { userId } = req.params;
@@ -252,16 +257,13 @@ const updateDailyRanking = async () => {
     // Crear el array de operaciones de escritura en bloque
     const bulkOperations = [];
     let currentRank = 1; // Puesto en el ranking visible
-
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
       const previousRank = user.ranking || null;
-
       // Determinar si el usuario actual tiene la misma puntuación que el anterior
       if (i > 0 && user.points < users[i - 1].points) {
         currentRank++; // Incrementar el ranking solo si la puntuación es menor
       }
-
       // Determinar la tendencia del ranking
       let currentTrend = "";
       if (previousRank !== null) {
@@ -271,7 +273,6 @@ const updateDailyRanking = async () => {
           currentTrend = "↑";
         }
       }
-
       // Añadir la operación de actualización al array de operaciones en bloque
       bulkOperations.push({
         updateOne: {
@@ -316,6 +317,38 @@ const updateDailyRanking = async () => {
 
 // updateDailyRanking();
 
+const updateUsersBonuses = async () => {
+  try {
+    const playersWithPlayingStrike = await User.updateMany(
+      {
+        playingStrike: 10,
+      },
+      {
+        $set: {
+          playingStrike: 0,
+          hasPlayingStrikeBonus: true,
+        },
+      }
+    );
+    const playersWithWinningStrike = await User.updateMany(
+      {
+        winningStrike: 10,
+      },
+      {
+        $set: {
+          winningStrike: 0,
+          hasWinningStrikeBonus: true,
+        },
+      }
+    );
+    console.log(
+      `Bonificaciones actualizadas. Hay ${playersWithPlayingStrike.modifiedCount} jugadores con bonificación de racha de partidas y ${playersWithWinningStrike.modifiedCount} jugadores con bonificación de racha de victorias. `
+    );
+  } catch (error) {
+    console.error("Error al actualizar bonus racha partidas:", error);
+  }
+};
+
 const updateUsersField = async (req, res, next) => {
   try {
     const { keyword } = req.params;
@@ -323,7 +356,7 @@ const updateUsersField = async (req, res, next) => {
     if (!keyword) {
       return res.status(400).json({ message: "Keyword es requerido." });
     }
-    if (keyword != "Est@sb0rr@ch0M@nu31") {
+    if (keyword != process.env.KEYWORD) {
       return res.status(400).json({ message: "Keyword incorrecto." });
     }
     const resultado = await User.updateMany(
@@ -346,7 +379,7 @@ module.exports = {
   updateUsersField,
   getUserPoints,
   getUserRanking,
-
+  updateUsersBonuses,
   updateDailyRanking,
   buyPhraseDetails,
 };

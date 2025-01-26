@@ -38,7 +38,7 @@ const startGame = async (req, res, next) => {
     } else {
       const plainPhrase = removeAccents(currentPhraseToPlay.quote);
       const hiddenPhrase = processPhraseToShow(plainPhrase, []);
-      const cluesPrices = await setCluesPrice(userId, phraseToPlay);
+      const cluesPrices = await setCluesPrice(userId, currentPhraseToPlay.number, isDailyPhrase);
       let game = new Game({
         userId: userId,
         phrase: hiddenPhrase,
@@ -82,7 +82,12 @@ const startGame = async (req, res, next) => {
   }
 };
 
-const setCluesPrice = async (userId, phraseToStartNumber) => {
+const setCluesPrice = async (
+  userId,
+  phraseToStartNumber,
+  isPlayingPhraseOfTheDay
+) => {
+  console.log("setCluesPrice", userId, phraseToStartNumber, isPlayingPhraseOfTheDay);
   const cluesPrices = { actor: 5, director: 5, letter: 20, lettersRight: 10 };
   //Si es frase anterior al cambio de precio, mantén precio anterior
   if (phraseToStartNumber > 0 && phraseToStartNumber < 96) {
@@ -91,38 +96,32 @@ const setCluesPrice = async (userId, phraseToStartNumber) => {
     cluesPrices.letter = 30;
     cluesPrices.lettersRight = 20;
   }
-  // const todayDate = new Date();
 
-  //logica para calcular los precios de las pistas
-  //El dia de navidad pistas gratis
-  // if (
-  //   todayDate.getDate() === 6 &&
-  //   todayDate.getMonth() === 0 &&
-  //   todayDate.getHours()>=7 &&
-  //   !phraseToStartNumber
-  // ) {
-  //   cluesPrices.actor = 0;
-  //   cluesPrices.director = 0;
-  //   cluesPrices.letter = 0;
-  //   cluesPrices.lettersRight = 0;
-  // } else {
   //comprueba si tiene racha de partidas/partidas ganadas
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findById(userId);
+  // const previousPhraseOfTheDayPlayed = await Game.findOne({
+  //   userId: userId,
+  //   phraseNumber: phraseToStartNumber - 1,
+  //   isDailyPhrase: true,
+  // });
 
-  if (user.hasPlayingStrikeBonus) {
+  //Aplica los bonus de racha si es necesario y solo a la frase del día
+  if (user.hasPlayingStrikeBonus && isPlayingPhraseOfTheDay ) {
     cluesPrices.actor = 0;
     cluesPrices.director = 0;
-    if (user.hasWinningStrikeBonus) {
-      cluesPrices.letter = 0;
-      cluesPrices.lettersRight = 0;
-    }
+    cluesPrices.lettersRight = 0;
+  }
+  if (user.hasWinningStrikeBonus && isPlayingPhraseOfTheDay ) {
+    cluesPrices.actor = 0;
+    cluesPrices.director = 0;
+    cluesPrices.letter = 0;
+    cluesPrices.lettersRight = 0;
   }
 
-  // }
-
-  console.log("Precios pistas: ", cluesPrices);
   return cluesPrices;
 };
+
+
 const updateGame = async (req, res, next) => {
   try {
     const { gameId } = req.params;
@@ -597,11 +596,16 @@ const updateGameUserId = async (req, res, next) => {
   }
 };
 
-const checkGameForStrike = async (gameId) => {
-  const checkResult = { playingStrike: false, winningStrike: false, resetStrike: false };
+const checkGameForStrike = async (gameId, isFirstDayOfStrike) => {
+  const checkResult = {
+    playingStrike: false,
+    winningStrike: false,
+    resetStrike: false,
+    resetWinningStrike: false,
+  };
   try {
     const game = await Game.findById(gameId);
-    if (!game) {
+    if (!game || !game.isDailyPhrase) {
       return checkResult;
     }
     //Comprueba si ha jugado la partida del dia anterior, si no es así, resetea la racha
@@ -610,14 +614,16 @@ const checkGameForStrike = async (gameId) => {
       phraseNumber: game.phraseNumber - 1,
       isDailyPhrase: true,
     });
-    if (!previousGame) {
+    if (!previousGame && !isFirstDayOfStrike) {
       checkResult.resetStrike = true;
-     
     }
     if (game.isDailyPhrase) {
       checkResult.playingStrike = true;
       if (game.gameStatus === "win") {
         checkResult.winningStrike = true;
+      } else {
+        checkResult.resetWinningStrike = true;
+        checkResult.winningStrike = false;
       }
     }
 

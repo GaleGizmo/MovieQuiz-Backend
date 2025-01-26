@@ -83,5 +83,30 @@ function startServer(port) {
   });
 }
 
+const simulateCronJobs = async () => {
+  const { getPhrase } = require('./src/api/phrases/phrases.controller');
+  // const { getAndSendMessages } = require('./src/api/messages/messages.controller');
+  const { updateDailyRanking, updateUsersBonuses } = require('./src/api/users/user.controller');
+
+  try {
+    console.log("Simulando cron de las 7 AM");
+    await updateUsersBonuses();
+    await getPhrase();
+    await updateDailyRanking();
+  } catch (error) {
+    console.error("Error simulando el cron de las 7 AM:", error);
+  }
+
+  // try {
+  //   console.log("Simulando cron de las 9 AM");
+  //   await getAndSendMessages();
+  // } catch (error) {
+  //   console.error("Error simulando el cron de las 9 AM:", error);
+  // }
+};
+
 // Iniciar el servidor
 startServer(PORT);
+
+// Simular los cronjobs
+simulateCronJobs();

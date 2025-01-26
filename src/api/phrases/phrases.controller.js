@@ -6,7 +6,6 @@ const Game = require("../game/game.model.js");
 const User = require("../users/user.model.js");
 const { isSpecialDate } = require("../../utils/isSpecialDate.js");
 
-
 // coge una frase al azar de las que no han sido usadas, la copia a FraseDelDia y la marca como usada
 const getPhrase = async () => {
   try {
@@ -16,7 +15,7 @@ const getPhrase = async () => {
     let randomPhrase = null;
     if (isSpecialDate()) {
       randomPhrase = specialPhrase(howManyUsed);
-      await randomPhrase.save()
+      await randomPhrase.save();
     } else {
       // Buscar todas las frases que no han sido usadas
       const unusedPhrases = await Phrase.find({ used: false });
@@ -28,7 +27,6 @@ const getPhrase = async () => {
       //elimina los juegos que no se han llegado a empezar
       await deleteUnstartedGames(howManyUsed);
 
-     
       //Elige una frase al azar entre las no usadas comprobando que no se elijan dos frases seguidas de la misma película
       let isNotValidPhrase = true;
 
@@ -46,7 +44,7 @@ const getPhrase = async () => {
       // Marca la frase elegida como usada y numérala en la base de datos
       await Phrase.updateOne(
         { _id: randomPhrase._id },
-        { $set: { used: true, number: howManyUsed+1 } }
+        { $set: { used: true, number: howManyUsed + 1 } }
       );
     }
     //los juegos del día anterior que se hayan empezado y no estén terminados se consideran perdidos
@@ -63,6 +61,7 @@ const getPhrase = async () => {
       _id: randomPhrase._id,
     });
     await phraseOfTheDay.save();
+    console.log("Frase del día guardada:", randomPhrase);
   } catch (err) {
     console.error("Error al obtener la frase del día:", err);
   }
@@ -107,7 +106,10 @@ const updateLostGamesAndUsers = async (previousPhraseNumber) => {
     for (const [userId, phrasesLost] of Object.entries(userPhrasesMap)) {
       const userUpdateResult = await User.updateOne(
         { _id: userId },
-        { $addToSet: { phrasesLost: { $each: phrasesLost } } }
+        {
+          $addToSet: { phrasesLost: { $each: phrasesLost } },
+          $set: { playingStrike: 0, winningStrike: 0 },
+        }
       );
 
       if (userUpdateResult.modifiedCount > 0) {
@@ -296,25 +298,28 @@ const getOldPhrasesStatus = async (req, res, next) => {
   }
 };
 
-const specialPhrase =(numberForPhrase)=>{
+const specialPhrase = (numberForPhrase) => {
   const phrase = new Phrase({
-    quote: 'Yo digo que eres el mesías, y de eso entiendo porque he seguido a varios',
-    movie: 'La vida de Brian',
+    quote:
+      "Yo digo que eres el mesías, y de eso entiendo porque he seguido a varios",
+    movie: "La vida de Brian",
     year: 1971,
-    director: 'Terry Jones',
-    original: 'I say you are Lord, and I should know. I\'ve followed a few',
+    director: "Terry Jones",
+    original: "I say you are Lord, and I should know. I've followed a few",
     who_said_it: {
-        actor: 'John Cleese',
-        character: 'Arthur',
-        context: 'Los seguidores de Brian no se dejan convencer por su negativa a que lo consideren el Mesías.'
+      actor: "John Cleese",
+      character: "Arthur",
+      context:
+        "Los seguidores de Brian no se dejan convencer por su negativa a que lo consideren el Mesías.",
     },
-    poster: 'https://res.cloudinary.com/dwv0trjwd/image/upload/v1720544074/MovieQuotes/monty_python_s_life_of_brian-402192024-mmed_lcnur7.jpg',
+    poster:
+      "https://res.cloudinary.com/dwv0trjwd/image/upload/v1720544074/MovieQuotes/monty_python_s_life_of_brian-402192024-mmed_lcnur7.jpg",
     used: true,
-    number: numberForPhrase+1,
+    number: numberForPhrase + 1,
   });
-  return phrase
-}
-// getPhrase()
+  return phrase;
+};
+
 
 module.exports = {
   getPhrase,
