@@ -47,37 +47,40 @@ const getPhrase = async () => {
         { $set: { used: true, number: howManyUsed + 1 } }
       );
     }
-    //los juegos del día anterior que se hayan empezado y no estén terminados se consideran perdidos
-    await updateLostGamesAndUsers(howManyUsed);
-    howManyUsed++;
-    randomPhrase.number = howManyUsed;
 
-    randomPhrase = randomPhrase.toObject();
+    howManyUsed++;
+    const phraseToSave = {
+      ...randomPhrase.toObject(),
+      number: howManyUsed,
+    };
 
     // Guardar randomPhrase en PhraseOfTheDay tras borrar la anterior
     await PhraseOfTheDay.deleteMany({});
     const phraseOfTheDay = new PhraseOfTheDay({
-      ...randomPhrase,
+      ...phraseToSave,
       _id: randomPhrase._id,
     });
     await phraseOfTheDay.save();
-    console.log("Frase del día guardada:", randomPhrase);
+    console.log("Frase del día guardada:", phraseOfTheDay);
+    return phraseOfTheDay;
   } catch (err) {
     console.error("Error al obtener la frase del día:", err);
+    return null;
   }
 };
 
-const updateLostGamesAndUsers = async (previousPhraseNumber) => {
+const updateLostGamesAndUsers = async (currentPhraseNumber) => {
   try {
     // Paso 1: Filtrar las partidas que serán marcadas como "perdidas"
     const gamesToUpdate = await Game.find(
       {
-        phraseNumber: { $lte: previousPhraseNumber },
+        phraseNumber: { $lt: currentPhraseNumber },
         gameStatus: "playing",
         triedWords: { $exists: true, $not: { $size: 0 } },
       },
       { phraseNumber: 1, userId: 1, _id: 1 } // Incluye los campos necesarios
     );
+
     // Si no hay partidas que actualizar, devolvemos directamente
     if (gamesToUpdate.length === 0) {
       console.log("No hay partidas para actualizar.");
@@ -108,7 +111,8 @@ const updateLostGamesAndUsers = async (previousPhraseNumber) => {
         { _id: userId },
         {
           $addToSet: { phrasesLost: { $each: phrasesLost } },
-          $set: { playingStrike: 0, winningStrike: 0 },
+          $set: { winningStrike: 0 },
+          $inc: { playingStrike: 1 },
         }
       );
 
@@ -320,7 +324,6 @@ const specialPhrase = (numberForPhrase) => {
   return phrase;
 };
 
-
 module.exports = {
   getPhrase,
   getPhraseOfTheDay,
@@ -328,4 +331,5 @@ module.exports = {
   getPhraseByNumber,
   getOldPhrasesStatus,
   getPhraseOfTheDayNumber,
+  updateLostGamesAndUsers,
 };

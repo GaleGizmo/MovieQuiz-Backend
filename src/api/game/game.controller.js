@@ -38,7 +38,11 @@ const startGame = async (req, res, next) => {
     } else {
       const plainPhrase = removeAccents(currentPhraseToPlay.quote);
       const hiddenPhrase = processPhraseToShow(plainPhrase, []);
-      const cluesPrices = await setCluesPrice(userId, currentPhraseToPlay.number, isDailyPhrase);
+      const cluesPrices = await setCluesPrice(
+        userId,
+        currentPhraseToPlay.number,
+        isDailyPhrase
+      );
       let game = new Game({
         userId: userId,
         phrase: hiddenPhrase,
@@ -87,9 +91,8 @@ const setCluesPrice = async (
   phraseToStartNumber,
   isPlayingPhraseOfTheDay
 ) => {
-  console.log("setCluesPrice", userId, phraseToStartNumber, isPlayingPhraseOfTheDay);
+  //Comprueba si la frase es anterior al cambio de precio de pistas y ajusta los precios
   const cluesPrices = { actor: 5, director: 5, letter: 20, lettersRight: 10 };
-  //Si es frase anterior al cambio de precio, mantén precio anterior
   if (phraseToStartNumber > 0 && phraseToStartNumber < 96) {
     cluesPrices.actor = 10;
     cluesPrices.director = 10;
@@ -106,12 +109,12 @@ const setCluesPrice = async (
   // });
 
   //Aplica los bonus de racha si es necesario y solo a la frase del día
-  if (user.hasPlayingStrikeBonus && isPlayingPhraseOfTheDay ) {
+  if (user.hasPlayingStrikeBonus && isPlayingPhraseOfTheDay) {
     cluesPrices.actor = 0;
     cluesPrices.director = 0;
     cluesPrices.lettersRight = 0;
   }
-  if (user.hasWinningStrikeBonus && isPlayingPhraseOfTheDay ) {
+  if (user.hasWinningStrikeBonus && isPlayingPhraseOfTheDay) {
     cluesPrices.actor = 0;
     cluesPrices.director = 0;
     cluesPrices.letter = 0;
@@ -120,7 +123,6 @@ const setCluesPrice = async (
 
   return cluesPrices;
 };
-
 
 const updateGame = async (req, res, next) => {
   try {
@@ -596,11 +598,11 @@ const updateGameUserId = async (req, res, next) => {
   }
 };
 
-const checkGameForStrike = async (gameId, isFirstDayOfStrike) => {
+const checkGameForStrike = async (gameId) => {
   const checkResult = {
     playingStrike: false,
     winningStrike: false,
-    resetStrike: false,
+   
     resetWinningStrike: false,
   };
   try {
@@ -609,21 +611,23 @@ const checkGameForStrike = async (gameId, isFirstDayOfStrike) => {
       return checkResult;
     }
     //Comprueba si ha jugado la partida del dia anterior, si no es así, resetea la racha
-    const previousGame = await Game.findOne({
-      userId: game.userId,
-      phraseNumber: game.phraseNumber - 1,
-      isDailyPhrase: true,
-    });
-    if (!previousGame && !isFirstDayOfStrike) {
-      checkResult.resetStrike = true;
-    }
+    // const previousGame = await Game.findOne({
+    //   userId: game.userId,
+    //   phraseNumber: game.phraseNumber - 1,
+    //   isDailyPhrase: true,
+    // });
+    // if (!previousGame && !isFirstDayOfStrike) {
+    //   checkResult.resetStrike = true;
+    // }
+    // cpmprueba las rachas que se deben actualizar
     if (game.isDailyPhrase) {
       checkResult.playingStrike = true;
       if (game.gameStatus === "win") {
         checkResult.winningStrike = true;
-      } else {
+      }
+       if (game.gameStatus === "lose") {
         checkResult.resetWinningStrike = true;
-        checkResult.winningStrike = false;
+       
       }
     }
 
@@ -631,6 +635,23 @@ const checkGameForStrike = async (gameId, isFirstDayOfStrike) => {
   } catch (err) {
     console.error("Error al verificar la partida:", err.message);
     throw new Error("Error al verificar la partida.");
+  }
+};
+
+const getTotalPointsFromUserGames = async (req, res, next) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: "UserId es requerido." });
+    }
+    const games = await Game.find({ userId: userId });
+    let totalPoints = 0;
+    games.forEach((game) => {
+      totalPoints = totalPoints + game.earnedPoints;
+    });
+    res.status(200).json({ totalPoints });
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -643,4 +664,5 @@ module.exports = {
   useClue,
   updateGameUserId,
   checkGameForStrike,
+  getTotalPointsFromUserGames,
 };

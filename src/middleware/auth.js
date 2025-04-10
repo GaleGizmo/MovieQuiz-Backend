@@ -1,5 +1,6 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
+require("dotenv").config();
 const User = require("../api/users/user.model");
 const { verifyJwt } = require("../utils/jwt");
 
@@ -21,7 +22,13 @@ const authenticate = async (req, res, next) => {
       next(err); // Pasar el error al siguiente middleware
     }
   };
-  
+  const checkKeyword = (req, res, next) => {
+    const provided = req.headers["keyword"];
+    if (provided !== process.env.KEYWORD) {
+      return res.status(403).json({ message: "No estás autorizado para esta acción" });
+    }
+    next();
+  };
   const isAdmin = [authenticate, (req, res, next) => {
     if (req.user.role === 2) {
       next();
@@ -44,4 +51,4 @@ const authenticate = async (req, res, next) => {
       expiresIn: "1h",
     })
   }
-  module.exports = { authenticate, isAdmin, isAdminOrOwner, generateTempToken };
+  module.exports = { authenticate, isAdmin, isAdminOrOwner, generateTempToken, checkKeyword };

@@ -3,6 +3,7 @@
 // const Game = require("../game/game.model");
 const { checkGameForStrike } = require("../game/game.controller");
 const User = require("./user.model");
+const Notification = require("../notifications/notifications.model");
 
 const getUserData = async (req, res, next) => {
   try {
@@ -79,30 +80,27 @@ const updateUser = async (req, res, next) => {
 
     if (gameId) {
       //Comprueba si hay que actualizar las rachas de partidas y victorias
-      const isFirstDayOfStrike = userStrike.playingStrike === 0 ? true : false;
-      const addToStrike = await checkGameForStrike(gameId, isFirstDayOfStrike);
-      if (addToStrike.resetStrike) {
-        update.playingStrike = addToStrike.playingStrike ? 1 : 0;
-        update.hasPlayingStrikeBonus = false;
-        update.winningStrike = addToStrike.winningStrike ? 1 : 0;
-        update.hasWinningStrikeBonus = false;
-      } else {
+      // Si el usuario ha ganado, se añade 1 a la racha de victorias
+      // Si el usuario ha perdido, se añade 1 a la racha de partidas
+      const addToStrike = await checkGameForStrike(gameId);
+      
         let newPlayingStrike = userStrike.playingStrike;
         let newWinningStrike = userStrike.winningStrike;
 
         if (addToStrike.playingStrike) {
           newPlayingStrike = newPlayingStrike + 1;
 
-          if (!addToStrike.winningStrike && addToStrike.resetWinningStrike) {
+          if (addToStrike.resetWinningStrike) {
             newWinningStrike = 0;
-          } else if (addToStrike.winningStrike) {
+          } 
+           if (addToStrike.winningStrike) {
             newWinningStrike = newWinningStrike + 1;
           }
         }
         update.playingStrike = newPlayingStrike;
 
         update.winningStrike = newWinningStrike;
-      }
+      
     }
 
     // Si está presente phrasesWon, lo añadimos al array correspondiente usando $push
@@ -137,14 +135,6 @@ const updateUser = async (req, res, next) => {
   }
 };
 
-// const calculateNewStrike = (strike, hasBonus) => {
-//   let newStrike = !hasBonus ? strike + 1 : 1;
-//   let newHasBonus = false;
-//   if (!hasBonus && newStrike === 10) {
-//     newHasBonus = true;
-//   }
-//   return { strike: newStrike, bonus: newHasBonus };
-// };
 
 //Comprar info de la frase
 const buyPhraseDetails = async (req, res, next) => {
@@ -317,11 +307,33 @@ const updateDailyRanking = async () => {
 
 // updateDailyRanking();
 
-const updateUsersBonuses = async () => {
+const updateUsersBonuses = async (previousPhraseNumber) => {
   try {
+    const usersWithPreviousPlayingBonusIds = await User.distinct("_id", { hasPlayingStrikeBonus: true });
+    const usersWithPreviousWinningBonusIds = await User.distinct("_id", { hasWinningStrikeBonus: true });
+    // Quitar las notificaciones de los usuarios que lo tenían el dia anterior
+    await Notification.updateOne(
+      { groupTag: "hasPlayingStrikeBonus" },
+      { $pull: { readBy: { $in: usersWithPreviousPlayingBonusIds } } }
+    );
+    await Notification.updateOne(
+      { groupTag: "hasWinningStrikeBonus" },
+      { $pull: { readBy: { $in: usersWithPreviousWinningBonusIds } } }
+    );
+    // Quitar el bono de los usuarios que lo tenían el dia anterior
+    await User.updateMany(
+      { hasPlayingStrikeBonus: true },
+      { $set: { hasPlayingStrikeBonus: false } }
+    );
+    await User.updateMany(
+      { hasWinningStrikeBonus: true },
+      { $set: { hasWinningStrikeBonus: false } }
+    );
+   
+    // Se asigna el bono a los usuarios que han llegado a 7 rachas de partidas o victorias
     const playersWithPlayingStrike = await User.updateMany(
       {
-        playingStrike: 10,
+        playingStrike: 7,
       },
       {
         $set: {
@@ -332,7 +344,7 @@ const updateUsersBonuses = async () => {
     );
     const playersWithWinningStrike = await User.updateMany(
       {
-        winningStrike: 10,
+        winningStrike: 7,
       },
       {
         $set: {
@@ -347,17 +359,76 @@ const updateUsersBonuses = async () => {
   } catch (error) {
     console.error("Error al actualizar bonus racha partidas:", error);
   }
+  try {
+    const usersWithActiveStrike = await User.find({
+      playingStrike: { $gt: 0 }, // sólo los que están en racha
+    });
+
+    const updates = [];
+
+    for (const user of usersWithActiveStrike) {
+      const hasPlayedYesterday =
+        user.phrasesWon.includes(previousPhraseNumber) ||
+        user.phrasesLost.includes(previousPhraseNumber);
+
+      if (!hasPlayedYesterday) {
+        updates.push(
+          User.updateOne(
+            { _id: user._id },
+            {
+              $set: {
+                playingStrike: 0,
+                hasPlayingStrikeBonus: false,
+                winningStrike: 0,
+                hasWinningStrikeBonus: false,
+              },
+            }
+          )
+        );
+      }
+    }
+
+    const results = await Promise.all(updates);
+
+    console.log(
+      `Se actualizaron ${results.length} usuarios que no jugaron ayer`
+    );
+  } catch (error) {
+    console.error("Error al resetear rachas de usuarios inactivos:", error);
+  }
 };
+
+const specialDayBonuses = async () => {
+  try {
+   
+
+    // Pistas gratuitas para todos los usuarios
+    await User.updateMany(
+      { hasWinningStrikeBonus: false} ,
+      { $set: { hasWinningStrikeBonus: true } }
+     
+    );
+
+    console.log(
+      `Se han activado pistas gratis a todos los usuarios.`
+    );
+  } catch (error) {
+    console.error("Error al actualizar los bonos por día especial", error);
+  }
+}
 
 const updateUsersField = async (req, res, next) => {
   try {
-    const { keyword } = req.params;
     const { field, value } = req.body;
-    if (!keyword) {
-      return res.status(400).json({ message: "Keyword es requerido." });
+    if (!field || value === null) {
+      return res.status(400).json({ message: "Campo y valor son requeridos." });
     }
-    if (keyword != process.env.KEYWORD) {
-      return res.status(400).json({ message: "Keyword incorrecto." });
+    // Validar el campo que se va a actualizar
+    const validFields = Object.keys(User.schema.paths); // Obtener las claves del esquema
+    if (!validFields.includes(field)) {
+      return res
+        .status(400)
+        .json({ message: `El campo '${field}' no existe en el modelo User.` });
     }
     const resultado = await User.updateMany(
       {},
@@ -382,4 +453,5 @@ module.exports = {
   updateUsersBonuses,
   updateDailyRanking,
   buyPhraseDetails,
+  specialDayBonuses,
 };
