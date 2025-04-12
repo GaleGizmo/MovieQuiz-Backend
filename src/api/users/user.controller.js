@@ -69,14 +69,14 @@ const updateUser = async (req, res, next) => {
       userId,
       "playingStrike winningStrike hasPlayingStrikeBonus hasWinningStrikeBonus"
     );
-    console.log("userStrike", userStrike);
+   
     if (!userStrike) {
       return res.status(404).json({ message: "Usuario no existe" });
     }
 
     // Inicializamos el objeto de actualización
     const update = { ...userData }; // Copiamos los demás campos de userData
-    console.log("update recibido:", update);
+    
 
     if (gameId) {
       //Comprueba si hay que actualizar las rachas de partidas y victorias
@@ -114,7 +114,7 @@ const updateUser = async (req, res, next) => {
       update.$push = { phrasesLost: userData.phrasesLost };
       delete update.phrasesLost; // Eliminamos phrasesLost para evitar conflictos
     }
-    console.log("update", update);
+    
     // Actualizamos el usuario con los campos correspondientes
     const user = await User.findByIdAndUpdate(userId, update, {
       new: true,

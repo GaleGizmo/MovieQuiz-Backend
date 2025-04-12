@@ -1,4 +1,4 @@
-// src/api/notifications/controller.js
+/* eslint-disable no-undef */
 const Notification = require("./notifications.model.js");
 const User = require("../users/user.model.js");
 

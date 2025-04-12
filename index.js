@@ -101,4 +101,4 @@ const simulateCronJobs = async () => {
 startServer(PORT);
 
 // Simular los cronjobs
-simulateCronJobs();
+// simulateCronJobs();
