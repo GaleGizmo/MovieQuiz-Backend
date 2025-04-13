@@ -11,7 +11,7 @@ const updatePoints = async (userId, pointsToAdd) => {
     if (!user) {
       throw new Error("Usuario no existe");
     }
-    console.log("Usuario:", userId, "puntos:", pointsToAdd);
+
     const updatedUser = await User.findOneAndUpdate(
       { _id: userId },
       { $inc: { points: pointsToAdd } },

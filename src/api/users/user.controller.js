@@ -309,6 +309,7 @@ const updateDailyRanking = async () => {
 
 const updateUsersBonuses = async (previousPhraseNumber) => {
   try {
+    // Obtener los usuarios que tenían el bonus de racha de partidas o victorias el día anterior
     const usersWithPreviousPlayingBonusIds = await User.distinct("_id", { hasPlayingStrikeBonus: true });
     const usersWithPreviousWinningBonusIds = await User.distinct("_id", { hasWinningStrikeBonus: true });
     // Quitar las notificaciones de los usuarios que lo tenían el dia anterior
@@ -320,6 +321,7 @@ const updateUsersBonuses = async (previousPhraseNumber) => {
       { groupTag: "hasWinningStrikeBonus" },
       { $pull: { readBy: { $in: usersWithPreviousWinningBonusIds } } }
     );
+    
     // Quitar el bono de los usuarios que lo tenían el dia anterior
     await User.updateMany(
       { hasPlayingStrikeBonus: true },
@@ -352,6 +354,34 @@ const updateUsersBonuses = async (previousPhraseNumber) => {
           hasWinningStrikeBonus: true,
         },
       }
+    );
+    // Obtener los usuarios que tienen el nuevo bonus de racha de partidas o victorias
+    const usersWithNewPlayingBonusIds = await User.distinct("_id", {
+      playingStrike: 0,
+      hasPlayingStrikeBonus: true,
+    });
+    const usersWithNewWinningBonus = await User.distinct("_id", {
+      winningStrike: 0,
+      hasWinningStrikeBonus: true,
+    });
+    const allUsersWithPlayingBonus = [
+      ...usersWithPreviousPlayingBonusIds,
+      ...usersWithNewPlayingBonusIds,
+    ];
+    const allUsersWithWinningBonus = [
+      ...usersWithPreviousWinningBonusIds,
+      ...usersWithNewWinningBonus,
+    ];
+    // Evitar que los usuarios que completaron ciclo reciban notificaciones de rotura de bonus
+
+    await Notification.updateOne(
+      { groupTag: "playing-strike-lost" },
+      { $addToSet: { readBy: { $each: allUsersWithPlayingBonus } } }
+    );
+    
+    await Notification.updateOne(
+      { groupTag: "winning-strike-lost" },
+      { $addToSet: { readBy: { $each: allUsersWithWinningBonus } } }
     );
     console.log(
       `Bonificaciones actualizadas. Hay ${playersWithPlayingStrike.modifiedCount} jugadores con bonificación de racha de partidas y ${playersWithWinningStrike.modifiedCount} jugadores con bonificación de racha de victorias. `
@@ -395,6 +425,28 @@ const updateUsersBonuses = async (previousPhraseNumber) => {
     );
   } catch (error) {
     console.error("Error al resetear rachas de usuarios inactivos:", error);
+  }
+  try {
+    // Eliminar de readBy a los que han vuelto a empezar una racha
+    const usersWithRestartedPlayingStrike = await User.distinct("_id", {
+      playingStrike:1,
+    });
+    const usersWithRestartedWinningStrike = await User.distinct("_id", {
+      winningStrike:1,
+    });
+
+    await Notification.updateOne(
+      { groupTag: "playing-strike-lost" },
+      { $pull: { readBy: { $in: usersWithRestartedPlayingStrike } } }
+    );
+    await Notification.updateOne(
+      { groupTag: "winning-strike-lost" },
+      { $pull: { readBy: { $in: usersWithRestartedWinningStrike } } }
+    );
+
+    console.log("Rehabilitados los usuarios para recibir futuras notificaciones de racha rota.");
+  } catch (error) {
+    console.error("Error al rehabilitar usuarios para futuras notificaciones:", error);
   }
 };
 
