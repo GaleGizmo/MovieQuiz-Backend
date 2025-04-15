@@ -312,7 +312,8 @@ const updateUsersBonuses = async (previousPhraseNumber) => {
     // Obtener los usuarios que tenían el bonus de racha de partidas o victorias el día anterior
     const usersWithPreviousPlayingBonusIds = await User.distinct("_id", { hasPlayingStrikeBonus: true });
     const usersWithPreviousWinningBonusIds = await User.distinct("_id", { hasWinningStrikeBonus: true });
-    // Quitar las notificaciones de los usuarios que lo tenían el dia anterior
+
+    // Quitar las notificaciones de los usuarios que lo tenían el día anterior
     await Notification.updateOne(
       { groupTag: "hasPlayingStrikeBonus" },
       { $pull: { readBy: { $in: usersWithPreviousPlayingBonusIds } } }
@@ -321,8 +322,8 @@ const updateUsersBonuses = async (previousPhraseNumber) => {
       { groupTag: "hasWinningStrikeBonus" },
       { $pull: { readBy: { $in: usersWithPreviousWinningBonusIds } } }
     );
-    
-    // Quitar el bono de los usuarios que lo tenían el dia anterior
+
+    // Quitar el bono de los usuarios que lo tenían el día anterior
     await User.updateMany(
       { hasPlayingStrikeBonus: true },
       { $set: { hasPlayingStrikeBonus: false } }
@@ -331,109 +332,75 @@ const updateUsersBonuses = async (previousPhraseNumber) => {
       { hasWinningStrikeBonus: true },
       { $set: { hasWinningStrikeBonus: false } }
     );
-   
-    // Se asigna el bono a los usuarios que han llegado a 7 rachas de partidas o victorias
+
+    // Asignar el bono a los usuarios que han llegado a 7 rachas de partidas o victorias
     const playersWithPlayingStrike = await User.updateMany(
-      {
-        playingStrike: 7,
-      },
-      {
-        $set: {
-          playingStrike: 0,
-          hasPlayingStrikeBonus: true,
-        },
-      }
+      { playingStrike: 7 },
+      { $set: { playingStrike: 0, hasPlayingStrikeBonus: true } }
     );
     const playersWithWinningStrike = await User.updateMany(
-      {
-        winningStrike: 7,
-      },
-      {
-        $set: {
-          winningStrike: 0,
-          hasWinningStrikeBonus: true,
-        },
-      }
+      { winningStrike: 7 },
+      { $set: { winningStrike: 0, hasWinningStrikeBonus: true } }
     );
-    // Obtener los usuarios que tienen el nuevo bonus de racha de partidas o victorias
-    const usersWithNewPlayingBonusIds = await User.distinct("_id", {
-      playingStrike: 0,
-      hasPlayingStrikeBonus: true,
-    });
-    const usersWithNewWinningBonus = await User.distinct("_id", {
-      winningStrike: 0,
-      hasWinningStrikeBonus: true,
-    });
-    const allUsersWithPlayingBonus = [
-      ...usersWithPreviousPlayingBonusIds,
-      ...usersWithNewPlayingBonusIds,
-    ];
-    const allUsersWithWinningBonus = [
-      ...usersWithPreviousWinningBonusIds,
-      ...usersWithNewWinningBonus,
-    ];
-    // Evitar que los usuarios que completaron ciclo reciban notificaciones de rotura de bonus
 
+    // Obtener los usuarios que tienen el nuevo bonus
+    const usersWithNewPlayingBonusIds = await User.distinct("_id", { hasPlayingStrikeBonus: true });
+    const usersWithNewWinningBonusIds = await User.distinct("_id", { hasWinningStrikeBonus: true });
+
+    // Eliminar duplicados de IDs combinando arrays
+    const allUsersWithPlayingBonus = [...new Set([...usersWithPreviousPlayingBonusIds, ...usersWithNewPlayingBonusIds])];
+    const allUsersWithWinningBonus = [...new Set([...usersWithPreviousWinningBonusIds, ...usersWithNewWinningBonusIds])];
+
+    // Evitar que los usuarios que completaron ciclo reciban notificaciones de rotura de bonus
     await Notification.updateOne(
       { groupTag: "playing-strike-lost" },
       { $addToSet: { readBy: { $each: allUsersWithPlayingBonus } } }
     );
-    
     await Notification.updateOne(
       { groupTag: "winning-strike-lost" },
       { $addToSet: { readBy: { $each: allUsersWithWinningBonus } } }
     );
+
     console.log(
-      `Bonificaciones actualizadas. Hay ${playersWithPlayingStrike.modifiedCount} jugadores con bonificación de racha de partidas y ${playersWithWinningStrike.modifiedCount} jugadores con bonificación de racha de victorias. `
+      `Bonificaciones actualizadas. Hay ${playersWithPlayingStrike.modifiedCount} jugadores con bonificación de racha de partidas y ${playersWithWinningStrike.modifiedCount} jugadores con bonificación de racha de victorias.`
     );
   } catch (error) {
     console.error("Error al actualizar bonus racha partidas:", error);
   }
+
   try {
-    const usersWithActiveStrike = await User.find({
-      playingStrike: { $gt: 0 }, // sólo los que están en racha
-    });
-
-    const updates = [];
-
-    for (const user of usersWithActiveStrike) {
+    // Resetear rachas para usuarios inactivos
+    const usersWithActiveStrike = await User.find({ playingStrike: { $gt: 0 } });
+    const updates = usersWithActiveStrike.map((user) => {
       const hasPlayedYesterday =
-        user.phrasesWon.includes(previousPhraseNumber) ||
-        user.phrasesLost.includes(previousPhraseNumber);
+        user.phrasesWon.includes(previousPhraseNumber) || user.phrasesLost.includes(previousPhraseNumber);
 
       if (!hasPlayedYesterday) {
-        updates.push(
-          User.updateOne(
-            { _id: user._id },
-            {
-              $set: {
-                playingStrike: 0,
-                hasPlayingStrikeBonus: false,
-                winningStrike: 0,
-                hasWinningStrikeBonus: false,
-              },
-            }
-          )
+        return User.updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              playingStrike: 0,
+              hasPlayingStrikeBonus: false,
+              winningStrike: 0,
+              hasWinningStrikeBonus: false,
+            },
+          }
         );
       }
-    }
+      return null;
+    }).filter(Boolean);
 
     const results = await Promise.all(updates);
-
-    console.log(
-      `Se actualizaron ${results.length} usuarios que no jugaron ayer`
-    );
+    console.log(`Se actualizaron ${results.length} usuarios que no jugaron ayer.`);
   } catch (error) {
     console.error("Error al resetear rachas de usuarios inactivos:", error);
   }
+
   try {
-    // Eliminar de readBy a los que han vuelto a empezar una racha
-    const usersWithRestartedPlayingStrike = await User.distinct("_id", {
-      playingStrike:1,
-    });
-    const usersWithRestartedWinningStrike = await User.distinct("_id", {
-      winningStrike:1,
-    });
+    // Rehabilitar usuarios para recibir futuras notificaciones de racha rota
+    const usersWithRestartedPlayingStrike = await User.distinct("_id", { playingStrike: 1 });
+    const usersWithRestartedWinningStrike = await User.distinct("_id", { winningStrike: 1 });
 
     await Notification.updateOne(
       { groupTag: "playing-strike-lost" },
