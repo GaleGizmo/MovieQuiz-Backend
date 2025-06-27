@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const { runMorningTasks } = require("../../cronjobs");
-const { checkKeyword } = require('../../middleware/auth.js');
+const { checkKeyword } = require("../middleware/auth");
+
 
 router.post("/run-morning-tasks", checkKeyword, async (req, res) => {
   try {
