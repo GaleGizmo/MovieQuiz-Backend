@@ -12,9 +12,11 @@ const {
   updateUsersBonuses,
   specialDayBonuses,
 } = require("./src/api/users/user.controller");
-const { createThreKingsNotification } = require("./src/api/notifications/notifications.controller");
+const {
+  createThreKingsNotification,
+} = require("./src/api/notifications/notifications.controller");
 
- const runMorningTasks = async () => {
+const runMorningTasks = async () => {
   console.log("Iniciando tareas de las 7 AM");
 
   let phrase = null;
@@ -27,9 +29,8 @@ const { createThreKingsNotification } = require("./src/api/notifications/notific
   }
   // Actualiza los juegos perdidos y los usuarios
   try {
-    
     if (phrase && phrase.number) {
-      await updateLostGamesAndUsers(phrase.number );
+      await updateLostGamesAndUsers(phrase.number);
       console.log("Juegos perdidos y usuarios actualizados");
     } else {
       console.warn(
@@ -52,7 +53,6 @@ const { createThreKingsNotification } = require("./src/api/notifications/notific
   } catch (error) {
     console.error("Error al actualizar rachas de usuarios:", error);
   }
-
 
   // Actualiza el ranking diario
   // Se ejecuta después de actualizar los juegos perdidos y los usuarios

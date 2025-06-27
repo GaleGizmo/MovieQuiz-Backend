@@ -27,6 +27,7 @@ const gameRoutes = require("./src/api/game/game.routes");
 const userRoutes = require("./src/api/users/user.routes")
 const messagesRoutes = require("./src/api/messages/messages.routes.js");
 const notificationsRoutes = require("./src/api/notifications/notifications.routes.js");
+const manualTasksRoutes = require("./src/routes/manualTasks.routes");
 
 
 
@@ -52,6 +53,7 @@ app.use("/game", gameRoutes);
 app.use("/user", userRoutes)
 app.use("/messages", messagesRoutes)
 app.use("/notifications", notificationsRoutes)
+app.use("/api/manual", manualTasksRoutes);
 
 app.use((err, req, res, next) => {
   return res.status(err.status || 500).json(err.message || "Unexpected error");
