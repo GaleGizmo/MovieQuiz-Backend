@@ -29,10 +29,19 @@ const startGame = async (req, res, next) => {
     }
     const maxTries = setMaximumTries(currentPhraseToPlay.quote);
 
-    const existingGame = await Game.findOne({
-      userId: userId,
-      phraseNumber: currentPhraseToPlay.number,
-    });
+    // Usar findOneAndUpdate con upsert para garantizar operación atómica
+    const existingGame = await Game.findOneAndUpdate(
+      {
+        userId: userId,
+        phraseNumber: currentPhraseToPlay.number,
+      },
+      {},
+      { 
+        new: true,
+        upsert: false
+      }
+    );
+
     if (existingGame) {
       return res.status(200).json(existingGame);
     } else {

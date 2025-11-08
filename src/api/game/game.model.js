@@ -48,5 +48,9 @@ const gameSchema = new Schema(
     collection: "game",
   }
 );
+
+// Añadir índice único compuesto para userId y phraseNumber
+gameSchema.index({ userId: 1, phraseNumber: 1 }, { unique: true });
+
 const Game = mongoose.model("game", gameSchema);
 module.exports = Game;
