@@ -12,9 +12,11 @@ const getPhrase = async () => {
     const previousPhrase = await PhraseOfTheDay.findOne();
     //obten el número de la última frase
     let howManyUsed = previousPhrase.number;
+    const todayPhraseNumber = howManyUsed + 1;
     let randomPhrase = null;
-    if (isSpecialDate()) {
-      randomPhrase = specialPhrase(howManyUsed);
+    const specialDay = isSpecialDate();
+    if (specialDay !== "normal") {
+      randomPhrase = specialPhrase(todayPhraseNumber, specialDay);
       await randomPhrase.save();
     } else {
       // Buscar todas las frases que no han sido usadas
@@ -44,14 +46,13 @@ const getPhrase = async () => {
       // Marca la frase elegida como usada y numérala en la base de datos
       await Phrase.updateOne(
         { _id: randomPhrase._id },
-        { $set: { used: true, number: howManyUsed + 1 } }
+        { $set: { used: true, number: todayPhraseNumber } }
       );
     }
 
-    howManyUsed++;
     const phraseToSave = {
       ...randomPhrase.toObject(),
-      number: howManyUsed,
+      number: todayPhraseNumber,
     };
 
     // Guardar randomPhrase en PhraseOfTheDay tras borrar la anterior
@@ -302,28 +303,49 @@ const getOldPhrasesStatus = async (req, res, next) => {
   }
 };
 
-const specialPhrase = (numberForPhrase) => {
-  const phrase = new Phrase({
-    quote:
-      "Yo digo que eres el mesías, y de eso entiendo porque he seguido a varios",
-    movie: "La vida de Brian",
-    year: 1971,
-    director: "Terry Jones",
-    original: "I say you are Lord, and I should know. I've followed a few",
-    who_said_it: {
-      actor: "John Cleese",
-      character: "Arthur",
-      context:
-        "Los seguidores de Brian no se dejan convencer por su negativa a que lo consideren el Mesías.",
-    },
-    poster:
-      "https://res.cloudinary.com/dwv0trjwd/image/upload/v1720544074/MovieQuotes/monty_python_s_life_of_brian-402192024-mmed_lcnur7.jpg",
-    used: true,
-    number: numberForPhrase + 1,
-  });
-  return phrase;
+const specialPhrase = (numberForPhrase, kindOfDate) => {
+  if (kindOfDate === "reyes") {
+    const phrase = new Phrase({
+      quote:
+        "¿Alguien más tiene ganas de cachondeo cuando hablo de mi amigo Pijus Magníficus?",
+      movie: "La vida de Brian",
+      year: 1971,
+      director: "Terry Jones",
+      original:
+        "Anybody else feel like a little giggle when I mention my fwiend Biggus Dickus?",
+      who_said_it: {
+        actor: "Michael Palin",
+        character: "Poncio Pilato",
+        context:
+          "Poncio Pilato se dirige a los legionarios, ofendido por la hilaridad que provoca el nombre de su amigo Pijus Magníficus.",
+      },
+      poster:
+        "https://res.cloudinary.com/dwv0trjwd/image/upload/v1720544074/MovieQuotes/monty_python_s_life_of_brian-402192024-mmed_lcnur7.jpg",
+      used: true,
+      number: numberForPhrase,
+    });
+    return phrase;
+  }
+  if (kindOfDate === "inocentes") {
+    const phrase = new Phrase({
+      quote: "It's very difficult todo esto",
+      movie: "Cumbre Europea en Bruselas",
+      year: 2012,
+      director: "JM Aznar",
+      original: "This is all very difficult",
+      who_said_it: {
+        actor: "M. Rajoy",
+        character: "Himself",
+        context: "¡¡FELIZ DÍA DE LOS INOCENTES!!",
+      },
+      poster:
+        "https://res.cloudinary.com/dwv0trjwd/image/upload/v1735260277/MovieQuotes/Rajoy.jpg_vdxnjq.jpg",
+      used: true,
+      number: numberForPhrase,
+    });
+    return phrase;
+  }
 };
-
 module.exports = {
   getPhrase,
   getPhraseOfTheDay,

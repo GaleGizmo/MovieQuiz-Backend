@@ -36,9 +36,9 @@ const startGame = async (req, res, next) => {
         phraseNumber: currentPhraseToPlay.number,
       },
       {},
-      { 
+      {
         new: true,
-        upsert: false
+        upsert: false,
       }
     );
 
@@ -65,7 +65,7 @@ const startGame = async (req, res, next) => {
         lettersFailed: [],
         gameResultNotification: false,
         currentTry: 0,
-        earnedPoints:0,
+        earnedPoints: 0,
         gameStatus: "playing",
         clues: {
           actor: {
@@ -158,7 +158,7 @@ const updateGame = async (req, res, next) => {
         .json({ message: "La palabra debe tener 5 letras" });
     }
     if (triedWord) {
-      const checkWord =  isValidWord(triedWord);
+      const checkWord = isValidWord(triedWord);
       if (!checkWord.wordIsValid) {
         return res
           .status(200)
@@ -281,7 +281,7 @@ const tryWord = async (req, res, next) => {
       return res.status(404).json({ message: "Juego no encontrado" });
     }
 
-    const checkWord =  isValidWord(word);
+    const checkWord = isValidWord(word);
     return res.status(200).json(checkWord);
   } catch (err) {
     next(err);
@@ -364,11 +364,11 @@ const useClue = async (req, res, next) => {
           // Verificar si era la última letra para actualizar gameStatus y los puntos
           if (clueResult.lastLetterRemaining) {
             updateData.gameStatus = "win";
-            let pointsToAdd=(game.maximumTries-game.currentTry)*10 + 20
-            updateData.earnedPoints=game.earnedPoints + pointsToAdd
-            clueResult.gamePoints=updateData.earnedPoints
-            const result=await updatePoints(user._id, pointsToAdd);
-            userPoints=result.points
+            let pointsToAdd = (game.maximumTries - game.currentTry) * 10 + 20;
+            updateData.earnedPoints = game.earnedPoints + pointsToAdd;
+            clueResult.gamePoints = updateData.earnedPoints;
+            const result = await updatePoints(user._id, pointsToAdd);
+            userPoints = result.points;
           }
 
           const updatedGame = await Game.findByIdAndUpdate(gameId, updateData, {
@@ -617,7 +617,7 @@ const checkGameForStrike = async (gameId) => {
   const checkResult = {
     playingStrike: false,
     winningStrike: false,
-   
+
     resetWinningStrike: false,
   };
   try {
@@ -640,9 +640,8 @@ const checkGameForStrike = async (gameId) => {
       if (game.gameStatus === "win") {
         checkResult.winningStrike = true;
       }
-       if (game.gameStatus === "lose") {
+      if (game.gameStatus === "lose") {
         checkResult.resetWinningStrike = true;
-       
       }
     }
 

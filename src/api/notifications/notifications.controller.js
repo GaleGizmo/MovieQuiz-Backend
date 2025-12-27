@@ -19,13 +19,25 @@ const getNotificationsForUser = async (req, res) => {
     if (user.winningStrike == 0 && !user.hasWinningStrikeBonus)
       groupTags.push("winning-strike-lost");
 
+    const now = new Date();
     const notifications = await Notification.find({
-      $or: [
-        { userId: user._id },
-        { groupTag: { $in: groupTags } },
-        { userId: null, groupTag: null },
+      $and: [
+        {
+          $or: [
+            { userId: user._id },
+            { groupTag: { $in: groupTags } },
+            { userId: null, groupTag: null },
+          ],
+        },
+        { readBy: { $ne: user._id } },
+        {
+          $or: [
+            { expiresAt: null },
+            { expiresAt: { $exists: false } },
+            { expiresAt: { $gt: now } },
+          ],
+        },
       ],
-      readBy: { $ne: user._id },
     }).sort({ createdAt: -1 });
 
     res.json(notifications);
@@ -40,7 +52,7 @@ const markAsRead = async (req, res) => {
 
   try {
     await Notification.updateMany(
-      { _id: notificationId  },
+      { _id: notificationId },
       { $addToSet: { readBy: userId } }
     );
     res.sendStatus(200);
@@ -70,11 +82,14 @@ const createNotification = async (req, res) => {
 };
 const createThreKingsNotification = async () => {
   try {
+    const year = new Date().getUTCFullYear();
+    const expiresAt = new Date(Date.UTC(year, 0, 7, 6, 59, 59, 999));
+
     const newNotif = new Notification({
       title: "¡Regalo de Reyes!",
       message:
         "La cita del 6 de enero tiene todas las pistas gratis 🎁. ¡Aprovéchalo!",
-      expiresAt: new Date("2025-01-07T06:59:59.999Z"),
+      expiresAt,
     });
     // Se crea la notificación sin userId ni groupTag, para que sea general
     await newNotif.save();
@@ -88,5 +103,5 @@ module.exports = {
   getNotificationsForUser,
   markAsRead,
   createNotification,
-    createThreKingsNotification,
+  createThreKingsNotification,
 };
