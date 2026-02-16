@@ -1,10 +1,13 @@
 
 
 /* eslint-disable no-undef */
+
+const { LESS_FREQUENT_CONSONANTS, MIN_TRIES, MAX_TRIES } = require("./constants");
+
 function setMaximumTries(text) {
   let maximumTries = 0;
 
-  let lessFrequentConsonants = "qfzjñxkw";
+  let lessFrequentConsonants = LESS_FREQUENT_CONSONANTS.toLowerCase();
 
   // Convertimos el texto a minúsculas para hacer la comparación de manera uniforme
   text = text.toLowerCase();
@@ -39,8 +42,8 @@ function setMaximumTries(text) {
   //Añade un intento de cortesía
   maximumTries++;
   //Limita el máximo y mínimo de intentos
-  if (maximumTries <3 ) maximumTries =3;
-  if (maximumTries >7) maximumTries =7;
+  if (maximumTries < MIN_TRIES) maximumTries = MIN_TRIES;
+  if (maximumTries > MAX_TRIES) maximumTries = MAX_TRIES;
 
 
   // Devolvemos el número de intentos

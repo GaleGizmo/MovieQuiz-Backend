@@ -12,6 +12,16 @@ const isLetter = require("../../utils/isLetter.js");
 const { isValidWord } = require("../../utils/isValidWord.js");
 const { ObjectId } = require("mongoose").Types;
 const { updatePoints } = require("../../utils/updatePoints.js");
+const { 
+  LETTERS_BY_FREQUENCY,
+  CLUE_PRICES,
+  CLUE_PRICES_LEGACY,
+  LEGACY_PRICES_THRESHOLD,
+  BLOCKED_CLUES_PHRASE,
+  WORD_LENGTH,
+  WIN_BONUS_POINTS,
+  POINTS_PER_REMAINING_TRY,
+} = require("../../utils/constants.js");
 
 const startGame = async (req, res, next) => {
   try {
@@ -39,7 +49,7 @@ const startGame = async (req, res, next) => {
       {
         new: true,
         upsert: false,
-      }
+      },
     );
 
     if (existingGame) {
@@ -50,7 +60,7 @@ const startGame = async (req, res, next) => {
       const cluesPrices = await setCluesPrice(
         userId,
         currentPhraseToPlay.number,
-        isDailyPhrase
+        isDailyPhrase,
       );
       let game = new Game({
         userId: userId,
@@ -99,15 +109,15 @@ const startGame = async (req, res, next) => {
 const setCluesPrice = async (
   userId,
   phraseToStartNumber,
-  isPlayingPhraseOfTheDay
+  isPlayingPhraseOfTheDay,
 ) => {
   //Comprueba si la frase es anterior al cambio de precio de pistas y ajusta los precios
-  const cluesPrices = { actor: 5, director: 5, letter: 20, lettersRight: 10 };
-  if (phraseToStartNumber > 0 && phraseToStartNumber < 96) {
-    cluesPrices.actor = 10;
-    cluesPrices.director = 10;
-    cluesPrices.letter = 30;
-    cluesPrices.lettersRight = 20;
+  const cluesPrices = { ...CLUE_PRICES };
+  if (phraseToStartNumber > 0 && phraseToStartNumber < LEGACY_PRICES_THRESHOLD) {
+    cluesPrices.actor = CLUE_PRICES_LEGACY.actor;
+    cluesPrices.director = CLUE_PRICES_LEGACY.director;
+    cluesPrices.letter = CLUE_PRICES_LEGACY.letter;
+    cluesPrices.lettersRight = CLUE_PRICES_LEGACY.lettersRight;
   }
 
   //comprueba si tiene racha de partidas/partidas ganadas
@@ -152,10 +162,10 @@ const updateGame = async (req, res, next) => {
     }
     let { triedWord, gameResultNotification, hasBoughtDetails } = gameData;
 
-    if (triedWord && triedWord.length != 5) {
+    if (triedWord && triedWord.length != WORD_LENGTH) {
       return res
         .status(400)
-        .json({ message: "La palabra debe tener 5 letras" });
+        .json({ message: `La palabra debe tener ${WORD_LENGTH} letras` });
     }
     if (triedWord) {
       const checkWord = isValidWord(triedWord);
@@ -169,15 +179,15 @@ const updateGame = async (req, res, next) => {
     const updateField = gameResultNotification
       ? { gameResultNotification }
       : hasBoughtDetails
-      ? { hasBoughtDetails }
-      : null;
+        ? { hasBoughtDetails }
+        : null;
 
     if (updateField) {
       const game = await Game.findByIdAndUpdate(
         gameId,
 
         updateField,
-        { new: true }
+        { new: true },
       );
       const gameDataResponse = {
         ...game.toObject(),
@@ -194,7 +204,7 @@ const updateGame = async (req, res, next) => {
       let newLettersFound = checkLettersFromWord(
         triedWord,
         plainPhrase,
-        currentGame.lettersFound
+        currentGame.lettersFound,
       );
       let updatedLettersFound = currentGame.lettersFound;
       if (newLettersFound.length > 0) {
@@ -203,7 +213,7 @@ const updateGame = async (req, res, next) => {
       const failedLetters = Array.from(triedWord).filter(
         (letter) =>
           !updatedLettersFound.includes(letter) &&
-          !currentGame.lettersFailed.includes(letter)
+          !currentGame.lettersFailed.includes(letter),
       );
 
       const currentTry = currentGame.currentTry + 1;
@@ -212,15 +222,15 @@ const updateGame = async (req, res, next) => {
       const gameStatus = checkEndGame(
         phrase,
         currentTry,
-        currentGame.maximumTries
+        currentGame.maximumTries,
       );
       //comprueba si hay que sumar puntos
       let pointsToAdd = 0;
       if (gameStatus === "win" && !currentGame.gameResultNotification) {
-        pointsToAdd = pointsToAdd + 20;
-        //suma 10 puntos por cada intento sobrante
+        pointsToAdd = pointsToAdd + WIN_BONUS_POINTS;
+        //suma puntos por cada intento sobrante
         pointsToAdd =
-          pointsToAdd + (currentGame.maximumTries - currentTry) * 10;
+          pointsToAdd + (currentGame.maximumTries - currentTry) * POINTS_PER_REMAINING_TRY;
       }
       const pointsFromLetters = newLettersFound.length;
       pointsToAdd = pointsToAdd + pointsFromLetters;
@@ -240,7 +250,7 @@ const updateGame = async (req, res, next) => {
           lettersFound: updatedLettersFound,
           $inc: { earnedPoints: pointsToAdd },
         },
-        { new: true }
+        { new: true },
       );
       // Hacer una copia del objeto `game` y agregar `failedLetters`
       const gameDataResponse = {
@@ -294,7 +304,7 @@ const getUserStats = async (req, res, next) => {
     const wins = games.filter((game) => game.gameStatus === "win").length;
     const losses = games.filter((game) => game.gameStatus === "lose").length;
     const playing = games.filter(
-      (game) => game.gameStatus === "playing"
+      (game) => game.gameStatus === "playing",
     ).length;
     const currentPhraseOfTheDay = await PhraseOfTheDay.findOne();
     const phrasesUntilToday = currentPhraseOfTheDay
@@ -336,7 +346,7 @@ const useClue = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
-    if (game.phraseNumber === 87) {
+    if (game.phraseNumber === BLOCKED_CLUES_PHRASE) {
       return res.status(200).json({ unusable: "Pistas no disponibles" });
     }
     let userPoints = user.points;
@@ -351,7 +361,7 @@ const useClue = async (req, res, next) => {
       case "letter":
         clueResult = await performLetterClue(
           game.phraseNumber,
-          game.lettersFound
+          game.lettersFound,
         );
         if (clueResult.used) {
           const updateData = {
@@ -364,7 +374,7 @@ const useClue = async (req, res, next) => {
           // Verificar si era la última letra para actualizar gameStatus y los puntos
           if (clueResult.lastLetterRemaining) {
             updateData.gameStatus = "win";
-            let pointsToAdd = (game.maximumTries - game.currentTry) * 10 + 20;
+            let pointsToAdd = (game.maximumTries - game.currentTry) * POINTS_PER_REMAINING_TRY + WIN_BONUS_POINTS;
             updateData.earnedPoints = game.earnedPoints + pointsToAdd;
             clueResult.gamePoints = updateData.earnedPoints;
             const result = await updatePoints(user._id, pointsToAdd);
@@ -382,7 +392,7 @@ const useClue = async (req, res, next) => {
         clueResult = await performLettersRightClue(
           game.phraseNumber,
           wordToTry,
-          game.lettersFound
+          game.lettersFound,
         );
         if (clueResult.used) {
           const updatedGame = await Game.findByIdAndUpdate(
@@ -392,7 +402,7 @@ const useClue = async (req, res, next) => {
               "clues.lettersRight.value.commons": clueResult.lettersRight,
               "clues.lettersRight.value.word": wordToTry,
             },
-            { new: true }
+            { new: true },
           );
           updatedGameClues = updatedGame.clues;
         }
@@ -407,7 +417,7 @@ const useClue = async (req, res, next) => {
               "clues.actor.status": false,
               "clues.actor.value": clueResult.actor,
             },
-            { new: true }
+            { new: true },
           );
           updatedGameClues = updatedGame.clues;
         }
@@ -422,7 +432,7 @@ const useClue = async (req, res, next) => {
               "clues.director.status": false,
               "clues.director.value": clueResult.director,
             },
-            { new: true }
+            { new: true },
           );
           updatedGameClues = updatedGame.clues;
         }
@@ -435,7 +445,7 @@ const useClue = async (req, res, next) => {
         {
           points: userPoints - game.clues[clue].price,
         },
-        { new: true }
+        { new: true },
       );
       return res
         .status(200)
@@ -486,13 +496,13 @@ const performLetterClue = async (NumberOfPhrase, gameLettersFound) => {
     lastLetterRemaining = true;
   }
 
-  let chosenLetter;
-
-  // Elegimos una letra al azar del array
-  const randomIndex = Math.floor(
-    Math.random() * undiscoveredPhraseLettersArray.length
-  );
-  chosenLetter = undiscoveredPhraseLettersArray[randomIndex];
+  // Elegimos la letra más inusual (menor frecuencia) de las que faltan
+  const chosenLetter = undiscoveredPhraseLettersArray.reduce((leastFrequent, letter) => {
+    const currentIndex = LETTERS_BY_FREQUENCY.indexOf(letter.toUpperCase());
+    const leastFrequentIndex = LETTERS_BY_FREQUENCY.indexOf(leastFrequent.toUpperCase());
+    // Mayor índice = menor frecuencia
+    return currentIndex > leastFrequentIndex ? letter : leastFrequent;
+  }, undiscoveredPhraseLettersArray[0]);
 
   // Agregamos la letra seleccionada al array gameLettersFound
   gameLettersFound.push(chosenLetter);
@@ -511,7 +521,7 @@ const performLetterClue = async (NumberOfPhrase, gameLettersFound) => {
 const performLettersRightClue = async (
   NumberOfPhrase,
   wordToTry,
-  gameLettersFound
+  gameLettersFound,
 ) => {
   if (!isValidWord(wordToTry)) return { message: "Palabra no válida" };
   const phraseOnGame = await Phrase.findOne({ number: NumberOfPhrase });
@@ -520,7 +530,7 @@ const performLettersRightClue = async (
   const lettersInPhrase = checkLettersFromWord(
     wordToTry,
     plainPhrase,
-    gameLettersFound
+    gameLettersFound,
   );
 
   return {
@@ -563,7 +573,7 @@ const updateGameUserId = async (req, res, next) => {
     // Actualización masiva
     const result = await Game.updateMany(
       { userId: oldUserId },
-      { $set: { userId: newUserId } }
+      { $set: { userId: newUserId } },
     );
 
     const oldUser = await User.findById(oldUserId);
@@ -592,14 +602,14 @@ const updateGameUserId = async (req, res, next) => {
           phrasesLost: { $each: phrasesLost }, // Combinar sin duplicados
         },
       },
-      { new: true } // Retornar el documento actualizado
+      { new: true }, // Retornar el documento actualizado
     );
 
     // MArcar el usuario antiguo como deprecado
     await User.findByIdAndUpdate(
       oldUserId,
       { $set: { deprecatedUser: true } },
-      { new: true, strict: false }
+      { new: true, strict: false },
     );
 
     console.log(`${result.modifiedCount} documentos actualizados`);
@@ -625,16 +635,6 @@ const checkGameForStrike = async (gameId) => {
     if (!game || !game.isDailyPhrase) {
       return checkResult;
     }
-    //Comprueba si ha jugado la partida del dia anterior, si no es así, resetea la racha
-    // const previousGame = await Game.findOne({
-    //   userId: game.userId,
-    //   phraseNumber: game.phraseNumber - 1,
-    //   isDailyPhrase: true,
-    // });
-    // if (!previousGame && !isFirstDayOfStrike) {
-    //   checkResult.resetStrike = true;
-    // }
-    // cpmprueba las rachas que se deben actualizar
     if (game.isDailyPhrase) {
       checkResult.playingStrike = true;
       if (game.gameStatus === "win") {
@@ -662,6 +662,16 @@ const getTotalPointsFromUserGames = async (req, res, next) => {
     let totalPoints = 0;
     games.forEach((game) => {
       totalPoints = totalPoints + game.earnedPoints;
+
+      // Restar puntos gastados en pistas
+      if (game.clues) {
+        const clueTypes = ["actor", "director", "letter", "lettersRight"];
+        clueTypes.forEach((clueType) => {
+          if (game.clues[clueType] && game.clues[clueType].status === false) {
+            totalPoints = totalPoints - game.clues[clueType].price;
+          }
+        });
+      }
     });
     res.status(200).json({ totalPoints });
   } catch (err) {

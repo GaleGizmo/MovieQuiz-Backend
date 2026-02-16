@@ -5,6 +5,7 @@ const PhraseOfTheDay = require("./phraseoftheday.model.js");
 const Game = require("../game/game.model.js");
 const User = require("../users/user.model.js");
 const { isSpecialDate } = require("../../utils/isSpecialDate.js");
+const { MAX_STRIKE } = require("../../utils/constants.js");
 
 // coge una frase al azar de las que no han sido usadas, la copia a FraseDelDia y la marca como usada
 const getPhrase = async () => {
@@ -108,12 +109,17 @@ const updateLostGamesAndUsers = async (currentPhraseNumber) => {
     // Paso 4: Actualizar la colección User
     let updatedUsersCount = 0;
     for (const [userId, phrasesLost] of Object.entries(userPhrasesMap)) {
+      // Primero obtenemos el usuario para verificar su playingStrike actual
+      const user = await User.findById(userId, "playingStrike");
+      const newPlayingStrike = user && user.playingStrike < MAX_STRIKE 
+        ? user.playingStrike + 1 
+        : (user ? user.playingStrike : 0);
+
       const userUpdateResult = await User.updateOne(
         { _id: userId },
         {
           $addToSet: { phrasesLost: { $each: phrasesLost } },
-          $set: { winningStrike: 0 },
-          $inc: { playingStrike: 1 },
+          $set: { winningStrike: 0, playingStrike: newPlayingStrike },
         }
       );
 

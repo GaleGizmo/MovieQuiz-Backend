@@ -4,6 +4,7 @@
 const { checkGameForStrike } = require("../game/game.controller");
 const User = require("./user.model");
 const Notification = require("../notifications/notifications.model");
+const { MAX_STRIKE } = require("../../utils/constants");
 
 const getUserData = async (req, res, next) => {
   try {
@@ -67,40 +68,44 @@ const updateUser = async (req, res, next) => {
     }
     const userStrike = await User.findById(
       userId,
-      "playingStrike winningStrike hasPlayingStrikeBonus hasWinningStrikeBonus"
+      "playingStrike winningStrike hasPlayingStrikeBonus hasWinningStrikeBonus",
     );
-   
+
     if (!userStrike) {
       return res.status(404).json({ message: "Usuario no existe" });
     }
 
     // Inicializamos el objeto de actualización
     const update = { ...userData }; // Copiamos los demás campos de userData
-    
 
     if (gameId) {
       //Comprueba si hay que actualizar las rachas de partidas y victorias
       // Si el usuario ha ganado, se añade 1 a la racha de victorias
       // Si el usuario ha perdido, se añade 1 a la racha de partidas
       const addToStrike = await checkGameForStrike(gameId);
-      
-        let newPlayingStrike = userStrike.playingStrike;
-        let newWinningStrike = userStrike.winningStrike;
 
-        if (addToStrike.playingStrike) {
+      let newPlayingStrike = userStrike.playingStrike;
+      let newWinningStrike = userStrike.winningStrike;
+
+      if (addToStrike.playingStrike) {
+        // Solo incrementar si aún no ha llegado al máximo (el cronjob procesa el bonus)
+        if (newPlayingStrike < MAX_STRIKE) {
           newPlayingStrike = newPlayingStrike + 1;
+        }
 
-          if (addToStrike.resetWinningStrike) {
-            newWinningStrike = 0;
-          } 
-           if (addToStrike.winningStrike) {
+        if (addToStrike.resetWinningStrike) {
+          newWinningStrike = 0;
+        }
+        if (addToStrike.winningStrike) {
+          // Solo incrementar si aún no ha llegado al máximo
+          if (newWinningStrike < MAX_STRIKE) {
             newWinningStrike = newWinningStrike + 1;
           }
         }
-        update.playingStrike = newPlayingStrike;
+      }
 
-        update.winningStrike = newWinningStrike;
-      
+      update.playingStrike = newPlayingStrike;
+      update.winningStrike = newWinningStrike;
     }
 
     // Si está presente phrasesWon, lo añadimos al array correspondiente usando $push
@@ -114,7 +119,7 @@ const updateUser = async (req, res, next) => {
       update.$push = { phrasesLost: userData.phrasesLost };
       delete update.phrasesLost; // Eliminamos phrasesLost para evitar conflictos
     }
-    
+
     // Actualizamos el usuario con los campos correspondientes
     const user = await User.findByIdAndUpdate(userId, update, {
       new: true,
@@ -135,7 +140,6 @@ const updateUser = async (req, res, next) => {
   }
 };
 
-
 //Comprar info de la frase
 const buyPhraseDetails = async (req, res, next) => {
   try {
@@ -153,7 +157,7 @@ const buyPhraseDetails = async (req, res, next) => {
     const updatedUser = await User.findOneAndUpdate(
       { _id: userId },
       { $inc: { points: -5 } },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     return res.status(200).json({
@@ -277,7 +281,7 @@ const updateDailyRanking = async () => {
     // Ejecutar las operaciones en una sola llamada a la base de datos
     const resultado = await User.bulkWrite(bulkOperations);
     console.log(
-      `Ranking actualizado exitosamente. ${resultado.modifiedCount} usuarios modificados.`
+      `Ranking actualizado exitosamente. ${resultado.modifiedCount} usuarios modificados.`,
     );
   } catch (error) {
     console.error("Error al actualizar el ranking:", error);
@@ -310,59 +314,78 @@ const updateDailyRanking = async () => {
 const updateUsersBonuses = async (previousPhraseNumber) => {
   try {
     // Obtener los usuarios que tenían el bonus de racha de partidas o victorias el día anterior
-    const usersWithPreviousPlayingBonusIds = await User.distinct("_id", { hasPlayingStrikeBonus: true });
-    const usersWithPreviousWinningBonusIds = await User.distinct("_id", { hasWinningStrikeBonus: true });
+    const usersWithPreviousPlayingBonusIds = await User.distinct("_id", {
+      hasPlayingStrikeBonus: true,
+    });
+    const usersWithPreviousWinningBonusIds = await User.distinct("_id", {
+      hasWinningStrikeBonus: true,
+    });
 
     // Quitar las notificaciones de los usuarios que lo tenían el día anterior
     await Notification.updateOne(
       { groupTag: "hasPlayingStrikeBonus" },
-      { $pull: { readBy: { $in: usersWithPreviousPlayingBonusIds } } }
+      { $pull: { readBy: { $in: usersWithPreviousPlayingBonusIds } } },
     );
     await Notification.updateOne(
       { groupTag: "hasWinningStrikeBonus" },
-      { $pull: { readBy: { $in: usersWithPreviousWinningBonusIds } } }
+      { $pull: { readBy: { $in: usersWithPreviousWinningBonusIds } } },
     );
 
     // Quitar el bono de los usuarios que lo tenían el día anterior
     await User.updateMany(
       { hasPlayingStrikeBonus: true },
-      { $set: { hasPlayingStrikeBonus: false } }
+      { $set: { hasPlayingStrikeBonus: false } },
     );
     await User.updateMany(
       { hasWinningStrikeBonus: true },
-      { $set: { hasWinningStrikeBonus: false } }
+      { $set: { hasWinningStrikeBonus: false } },
     );
 
-    // Asignar el bono a los usuarios que han llegado a 7 rachas de partidas o victorias
+    // Asignar el bono a los usuarios que han llegado a MAX_STRIKE o más rachas de partidas o victorias
+    // Usamos $gte como medida de seguridad por si algún usuario superó el límite
     const playersWithPlayingStrike = await User.updateMany(
-      { playingStrike: 7 },
-      { $set: { playingStrike: 0, hasPlayingStrikeBonus: true } }
+      { playingStrike: { $gte: MAX_STRIKE } },
+      { $set: { playingStrike: 0, hasPlayingStrikeBonus: true } },
     );
     const playersWithWinningStrike = await User.updateMany(
-      { winningStrike: 7 },
-      { $set: { winningStrike: 0, hasWinningStrikeBonus: true } }
+      { winningStrike: { $gte: MAX_STRIKE } },
+      { $set: { winningStrike: 0, hasWinningStrikeBonus: true } },
     );
 
     // Obtener los usuarios que tienen el nuevo bonus
-    const usersWithNewPlayingBonusIds = await User.distinct("_id", { hasPlayingStrikeBonus: true });
-    const usersWithNewWinningBonusIds = await User.distinct("_id", { hasWinningStrikeBonus: true });
+    const usersWithNewPlayingBonusIds = await User.distinct("_id", {
+      hasPlayingStrikeBonus: true,
+    });
+    const usersWithNewWinningBonusIds = await User.distinct("_id", {
+      hasWinningStrikeBonus: true,
+    });
 
     // Eliminar duplicados de IDs combinando arrays
-    const allUsersWithPlayingBonus = [...new Set([...usersWithPreviousPlayingBonusIds, ...usersWithNewPlayingBonusIds])];
-    const allUsersWithWinningBonus = [...new Set([...usersWithPreviousWinningBonusIds, ...usersWithNewWinningBonusIds])];
+    const allUsersWithPlayingBonus = [
+      ...new Set([
+        ...usersWithPreviousPlayingBonusIds,
+        ...usersWithNewPlayingBonusIds,
+      ]),
+    ];
+    const allUsersWithWinningBonus = [
+      ...new Set([
+        ...usersWithPreviousWinningBonusIds,
+        ...usersWithNewWinningBonusIds,
+      ]),
+    ];
 
     // Evitar que los usuarios que completaron ciclo reciban notificaciones de rotura de bonus
     await Notification.updateOne(
       { groupTag: "playing-strike-lost" },
-      { $addToSet: { readBy: { $each: allUsersWithPlayingBonus } } }
+      { $addToSet: { readBy: { $each: allUsersWithPlayingBonus } } },
     );
     await Notification.updateOne(
       { groupTag: "winning-strike-lost" },
-      { $addToSet: { readBy: { $each: allUsersWithWinningBonus } } }
+      { $addToSet: { readBy: { $each: allUsersWithWinningBonus } } },
     );
 
     console.log(
-      `Bonificaciones actualizadas. Hay ${playersWithPlayingStrike.modifiedCount} jugadores con bonificación de racha de partidas y ${playersWithWinningStrike.modifiedCount} jugadores con bonificación de racha de victorias.`
+      `Bonificaciones actualizadas. Hay ${playersWithPlayingStrike.modifiedCount} jugadores con bonificación de racha de partidas y ${playersWithWinningStrike.modifiedCount} jugadores con bonificación de racha de victorias.`,
     );
   } catch (error) {
     console.error("Error al actualizar bonus racha partidas:", error);
@@ -370,71 +393,82 @@ const updateUsersBonuses = async (previousPhraseNumber) => {
 
   try {
     // Resetear rachas para usuarios inactivos
-    const usersWithActiveStrike = await User.find({ playingStrike: { $gt: 0 } });
-    const updates = usersWithActiveStrike.map((user) => {
-      const hasPlayedYesterday =
-        user.phrasesWon.includes(previousPhraseNumber) || user.phrasesLost.includes(previousPhraseNumber);
+    const usersWithActiveStrike = await User.find({
+      playingStrike: { $gt: 0 },
+    });
+    const updates = usersWithActiveStrike
+      .map((user) => {
+        const hasPlayedYesterday =
+          user.phrasesWon.includes(previousPhraseNumber) ||
+          user.phrasesLost.includes(previousPhraseNumber);
 
-      if (!hasPlayedYesterday) {
-        return User.updateOne(
-          { _id: user._id },
-          {
-            $set: {
-              playingStrike: 0,
-              hasPlayingStrikeBonus: false,
-              winningStrike: 0,
-              hasWinningStrikeBonus: false,
+        if (!hasPlayedYesterday) {
+          return User.updateOne(
+            { _id: user._id },
+            {
+              $set: {
+                playingStrike: 0,
+                hasPlayingStrikeBonus: false,
+                winningStrike: 0,
+                hasWinningStrikeBonus: false,
+              },
             },
-          }
-        );
-      }
-      return null;
-    }).filter(Boolean);
+          );
+        }
+        return null;
+      })
+      .filter(Boolean);
 
     const results = await Promise.all(updates);
-    console.log(`Se actualizaron ${results.length} usuarios que no jugaron ayer.`);
+    console.log(
+      `Se actualizaron ${results.length} usuarios que no jugaron ayer.`,
+    );
   } catch (error) {
     console.error("Error al resetear rachas de usuarios inactivos:", error);
   }
 
   try {
     // Rehabilitar usuarios para recibir futuras notificaciones de racha rota
-    const usersWithRestartedPlayingStrike = await User.distinct("_id", { playingStrike: 1 });
-    const usersWithRestartedWinningStrike = await User.distinct("_id", { winningStrike: 1 });
+    const usersWithRestartedPlayingStrike = await User.distinct("_id", {
+      playingStrike: 1,
+    });
+    const usersWithRestartedWinningStrike = await User.distinct("_id", {
+      winningStrike: 1,
+    });
 
     await Notification.updateOne(
       { groupTag: "playing-strike-lost" },
-      { $pull: { readBy: { $in: usersWithRestartedPlayingStrike } } }
+      { $pull: { readBy: { $in: usersWithRestartedPlayingStrike } } },
     );
     await Notification.updateOne(
       { groupTag: "winning-strike-lost" },
-      { $pull: { readBy: { $in: usersWithRestartedWinningStrike } } }
+      { $pull: { readBy: { $in: usersWithRestartedWinningStrike } } },
     );
 
-    console.log("Rehabilitados los usuarios para recibir futuras notificaciones de racha rota.");
+    console.log(
+      "Rehabilitados los usuarios para recibir futuras notificaciones de racha rota.",
+    );
   } catch (error) {
-    console.error("Error al rehabilitar usuarios para futuras notificaciones:", error);
+    console.error(
+      "Error al rehabilitar usuarios para futuras notificaciones:",
+      error,
+    );
   }
 };
 
 const specialDayBonuses = async () => {
   try {
-   
-
     // Pistas gratuitas para todos los usuarios
     await User.updateMany(
-      { hasWinningStrikeBonus: false} ,
-      { $set: { hasWinningStrikeBonus: true } }
-     
+      { hasWinningStrikeBonus: false },
+      { $set: { hasWinningStrikeBonus: true } },
     );
 
-    console.log(
-      `Se han activado pistas gratis a todos los usuarios.`
-    );
+    console.log(`Se han activado pistas gratis a todos los usuarios.`);
   } catch (error) {
     console.error("Error al actualizar los bonos por día especial", error);
   }
-}
+};
 
 const updateUsersField = async (req, res, next) => {
   try {
@@ -455,7 +489,7 @@ const updateUsersField = async (req, res, next) => {
         $set: {
           [field]: value,
         },
-      }
+      },
     );
     return res.status(200).json({ updatedCount: resultado.modifiedCount });
   } catch (error) {
